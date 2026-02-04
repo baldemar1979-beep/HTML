@@ -35,6 +35,18 @@
       background:#fff; padding:14px 18px; border-radius:14px; box-shadow:0 2px 4px rgba(0,0,0,0.08);
       margin-bottom:14px; display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start;
     }
+    .controls-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      width: 100%;
+    }
+    .controls-title {
+      font-weight: 950;
+      color: #2c3e50;
+      font-size: 16px;
+    }
     .block { min-width: 260px; flex: 1 1 320px; }
     .block.small { flex: 0 1 260px; min-width: 240px; }
     .block.wide { flex: 2 1 520px; min-width: 420px; }
@@ -205,9 +217,8 @@
 
     <div id="error" class="error"></div>
 
-    <!-- Network Controls -->
+    <!-- Upload Section -->
     <div class="controls">
-      <!-- Upload -->
       <div class="block small">
         <div class="fg">
           <label>Upload Weekly CSV(s)</label>
@@ -220,7 +231,6 @@
             <div class="hint">Name files like: <strong>2026 week 01.csv</strong> or <strong>2026week 1.csv</strong>.</div>
             <div class="upload-actions">
               <button class="btn" id="clear-data" type="button">Clear Data</button>
-              <button class="btn" id="reset-filters" type="button">Reset Filters</button>
             </div>
             <div class="hint" style="margin-top:4px;">
               <strong>Persistence:</strong> Data + filters auto-save in this browser and restore on reopen.
@@ -228,59 +238,79 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Weeks -->
-      <div class="block">
+    <!-- Controls Section -->
+    <div class="controls">
+      <div class="controls-header">
+        <div class="controls-title">Controls</div>
+        <button class="btn" id="reset-filters" type="button">Reset Filters</button>
+      </div>
+
+      <!-- Report Week -->
+      <div class="block small">
         <div class="fg">
-          <label>Weeks (Uploaded)</label>
-          <div class="btnrow" style="margin-bottom:8px;">
-            <button class="btn" id="weeks-all" type="button">Select All</button>
-            <button class="btn" id="weeks-none" type="button">Clear</button>
-          </div>
-          <div id="week-panel" class="panel">
-            <div style="color:#7f8c8d;font-size:12px;">No weeks loaded yet</div>
-          </div>
-          <div class="hint">Network filters apply to Fleet + Interventions + FOV.</div>
+          <label>Report Week</label>
+          <select id="report-week" multiple size="4" style="padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:#fff;">
+            <option value="all">(all)</option>
+          </select>
+          <div class="hint">Select from uploaded files.</div>
         </div>
       </div>
 
-      <!-- Network Filters -->
-      <div class="block wide">
+      <!-- Start Date -->
+      <div class="block small">
         <div class="fg">
-          <label>Network Filters</label>
-          <div class="btnrow" style="margin-bottom:10px;">
-            <div class="fg" style="min-width:260px;">
-              <label style="margin-bottom:6px;">Fleet (type to search)</label>
-              <input type="text" id="fleet" list="fleet-list" placeholder="All Fleets (type to search)" />
-              <datalist id="fleet-list"></datalist>
-              <div class="hint">Leave blank for All Fleets.</div>
-            </div>
-            <div class="fg" style="min-width:220px;">
-              <label style="margin-bottom:6px;">Vehicle Search</label>
-              <input type="text" id="vehicle" placeholder="Search vehicle..." />
-            </div>
-            <div class="fg" style="min-width:190px;">
-              <label style="margin-bottom:6px;">Start Date</label>
-              <input type="date" id="ds" />
-            </div>
-            <div class="fg" style="min-width:190px;">
-              <label style="margin-bottom:6px;">End Date</label>
-              <input type="date" id="de" />
-            </div>
-          </div>
+          <label>Start Date</label>
+          <input type="date" id="ds" />
+          <div class="hint">Auto-populated from CSVs.</div>
+        </div>
+      </div>
 
-          <details id="adv">
-            <summary>Advanced: Classification Filter (updates Fleet KPIs + Fleet table)</summary>
-            <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-              <input id="class-search" type="text" placeholder="Search classification..." style="flex:1; min-width:160px;" />
-              <button class="btn" type="button" id="class-all">Select All</button>
-              <button class="btn" type="button" id="class-none">Clear</button>
-            </div>
-            <div id="class-panel" class="panel" style="margin-top:10px; height:160px;">
-              <div style="color:#7f8c8d;font-size:12px;">Upload CSV(s) to load classifications</div>
-            </div>
-            <div class="hint">This filter now updates Fleet KPIs + Fleet table (still does not change Interventions/FOV).</div>
-          </details>
+      <!-- End Date -->
+      <div class="block small">
+        <div class="fg">
+          <label>End Date</label>
+          <input type="date" id="de" />
+          <div class="hint">Auto-populated from CSVs.</div>
+        </div>
+      </div>
+
+      <!-- Fleet -->
+      <div class="block small">
+        <div class="fg">
+          <label>Fleet</label>
+          <select id="fleet" multiple size="3" style="padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:#fff;">
+            <option value="">(all)</option>
+          </select>
+          <div class="hint">Multi-select available.</div>
+        </div>
+      </div>
+
+      <!-- Asset -->
+      <div class="block small">
+        <div class="fg">
+          <label>Asset</label>
+          <select id="vehicle" style="padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:#fff;">
+            <option value="">(all)</option>
+          </select>
+          <div class="hint">Select vehicle.</div>
+        </div>
+      </div>
+
+      <!-- Classification Filter -->
+      <div class="block wide" style="flex-basis: 100%;">
+        <div class="fg">
+          <label>Classification (updates Fleet KPIs + Fleet table)</label>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+            <input id="class-search" type="text" placeholder="Search classification..." style="flex:1; min-width:160px; padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px;" />
+            <button class="btn" type="button" id="class-all">Select All</button>
+            <button class="btn" type="button" id="class-none">Clear</button>
+          </div>
+          <div id="class-panel" class="panel" style="height:160px;">
+            <div style="color:#7f8c8d;font-size:12px;">Upload CSV(s) to load classifications</div>
+          </div>
+          <div class="hint">This filter updates Fleet KPIs + Fleet table (does not change Interventions/FOV).</div>
         </div>
       </div>
     </div>
@@ -844,7 +874,8 @@ function uiSnapshot(){
     emailBuckets: Array.from(selectedEmailBuckets),
     emailsManuallyChanged,
 
-    fleet: document.getElementById('fleet').value,
+    reportWeek: Array.from(document.getElementById('report-week').selectedOptions).map(opt => opt.value),
+    fleet: Array.from(document.getElementById('fleet').selectedOptions).map(opt => opt.value),
     vehicle: document.getElementById('vehicle').value,
     ds: document.getElementById('ds').value,
     de: document.getElementById('de').value,
@@ -875,7 +906,22 @@ function applyUiSnapshot(s){
 
   if(s.activeTab) setActiveTab(s.activeTab);
 
-  if(typeof s.fleet === 'string') document.getElementById('fleet').value = s.fleet;
+  // Restore report-week multi-select
+  if(Array.isArray(s.reportWeek)) {
+    const reportWeekSel = document.getElementById('report-week');
+    Array.from(reportWeekSel.options).forEach(opt => {
+      opt.selected = s.reportWeek.includes(opt.value);
+    });
+  }
+  
+  // Restore fleet multi-select
+  if(Array.isArray(s.fleet)) {
+    const fleetSel = document.getElementById('fleet');
+    Array.from(fleetSel.options).forEach(opt => {
+      opt.selected = s.fleet.includes(opt.value);
+    });
+  }
+  
   if(typeof s.vehicle === 'string') document.getElementById('vehicle').value = s.vehicle;
   if(typeof s.ds === 'string') document.getElementById('ds').value = s.ds;
   if(typeof s.de === 'string') document.getElementById('de').value = s.de;
@@ -1345,52 +1391,9 @@ function isFovMisaligned(e){
    SECTION: Weeks + Classification panels
 ======================================================================================= */
 function refreshWeeksPanel(){
-  const panel = document.getElementById('week-panel');
-  if(!rawEvents.length){
-    panel.innerHTML = `<div style="color:#7f8c8d;font-size:12px;">No weeks loaded yet</div>`;
-    selectedWeeks = new Set();
-    weeksManuallyChanged = false;
-    return;
-  }
-  const counts = new Map();
-  for(const e of rawEvents){
-    counts.set(e.fileWeek, (counts.get(e.fileWeek) || 0) + 1);
-  }
-  const weeks = Array.from(counts.keys()).sort();
-
-  if(selectedWeeks.size === 0 && !weeksManuallyChanged){
-    selectedWeeks = new Set(weeks);
-  } else {
-    selectedWeeks = new Set(Array.from(selectedWeeks).filter(w => counts.has(w)));
-  }
-
-  panel.innerHTML = weeks.map(w => {
-    const checked = selectedWeeks.has(w) ? 'checked' : '';
-    const count = counts.get(w);
-    return `
-      <div class="item">
-        <div class="left">
-          <input type="checkbox" class="wk" data-week="${esc(w)}" ${checked}/>
-          <div><strong>${esc(w)}</strong></div>
-        </div>
-        <div class="count">${count.toLocaleString()} events</div>
-      </div>
-    `;
-  }).join('');
-
-  panel.querySelectorAll('.wk').forEach(cb => {
-    cb.addEventListener('change', () => {
-      weeksManuallyChanged = true;
-      const wk = cb.getAttribute('data-week');
-      if(cb.checked) selectedWeeks.add(wk);
-      else selectedWeeks.delete(wk);
-
-      refreshClassificationPanel();
-      applyAutoDateRange();
-      renderAll();
-      schedulePersist();
-    });
-  });
+  // This function has been replaced by refreshReportWeekDropdown
+  // Keeping it as a stub for backward compatibility
+  refreshReportWeekDropdown();
 }
 function getAvailableClassifications(){
   const base = selectedWeeks.size ? rawEvents.filter(e => selectedWeeks.has(e.fileWeek)) : rawEvents;
@@ -1537,16 +1540,108 @@ function applyAutoDateRange(){
    SECTION: Network filters (classification is NOT part of this)
 ======================================================================================= */
 function refreshFleetDropdown(){
-  const dl = document.getElementById('fleet-list');
+  const sel = document.getElementById('fleet');
   const fleets = Array.from(new Set(rawEvents.map(e => e.fleet))).filter(Boolean).sort();
-  dl.innerHTML = fleets.map(f => `<option value="${esc(f)}"></option>`).join('');
+  // Keep the first "(all)" option and add fleet options
+  const allOption = sel.querySelector('option[value=""]');
+  sel.innerHTML = '';
+  if (allOption) sel.appendChild(allOption);
+  else sel.innerHTML = '<option value="">(all)</option>';
+  fleets.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f;
+    opt.textContent = f;
+    sel.appendChild(opt);
+  });
 }
 function normalizeFleetInput(val){
   return String(val||'').trim();
 }
+
+function refreshVehicleDropdown(){
+  const sel = document.getElementById('vehicle');
+  // Get vehicles from filtered fleet data
+  let events = rawEvents;
+  if(selectedWeeks.size > 0) {
+    events = events.filter(e => selectedWeeks.has(e.fileWeek));
+  }
+  
+  // Get selected fleets
+  const fleetSel = document.getElementById('fleet');
+  const selectedFleets = Array.from(fleetSel.selectedOptions).map(opt => opt.value).filter(Boolean);
+  
+  if(selectedFleets.length > 0) {
+    events = events.filter(e => selectedFleets.includes(e.fleet));
+  }
+  
+  const vehicles = Array.from(new Set(events.map(e => e.vehicle))).filter(Boolean).sort();
+  
+  // Keep the first "(all)" option and add vehicle options
+  const allOption = sel.querySelector('option[value=""]');
+  sel.innerHTML = '';
+  if (allOption) sel.appendChild(allOption);
+  else sel.innerHTML = '<option value="">(all)</option>';
+  
+  vehicles.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    sel.appendChild(opt);
+  });
+}
+
+function refreshReportWeekDropdown(){
+  const sel = document.getElementById('report-week');
+  const currentSelection = Array.from(sel.selectedOptions).map(opt => opt.value);
+  
+  if(!rawEvents.length){
+    sel.innerHTML = '<option value="all">(all)</option>';
+    return;
+  }
+  
+  const weeks = Array.from(new Set(rawEvents.map(e => e.fileWeek))).filter(Boolean).sort();
+  
+  // Build dropdown with (all) option and week options
+  sel.innerHTML = '<option value="all">(all)</option>';
+  weeks.forEach(w => {
+    const opt = document.createElement('option');
+    opt.value = w;
+    opt.textContent = w;
+    sel.appendChild(opt);
+  });
+  
+  // Restore previous selection or default to "all"
+  if(currentSelection.length > 0) {
+    Array.from(sel.options).forEach(opt => {
+      opt.selected = currentSelection.includes(opt.value);
+    });
+  } else {
+    sel.options[0].selected = true; // Select "(all)" by default
+  }
+  
+  // Update selectedWeeks based on the dropdown
+  updateSelectedWeeksFromDropdown();
+}
+
+function updateSelectedWeeksFromDropdown(){
+  const sel = document.getElementById('report-week');
+  const selectedValues = Array.from(sel.selectedOptions).map(opt => opt.value);
+  
+  if(selectedValues.includes('all') || selectedValues.length === 0) {
+    // If "all" is selected or nothing selected, select all available weeks
+    const weeks = Array.from(new Set(rawEvents.map(e => e.fileWeek))).filter(Boolean);
+    selectedWeeks = new Set(weeks);
+  } else {
+    selectedWeeks = new Set(selectedValues);
+  }
+}
+
 function filterEventsNetworkOnly(){
   let data = rawEvents;
   if(rawEvents.length){
+    // Update selectedWeeks from report-week dropdown
+    updateSelectedWeeksFromDropdown();
+    
     if(selectedWeeks.size === 0) return [];
     data = data.filter(e => selectedWeeks.has(e.fileWeek));
   }
@@ -1555,11 +1650,16 @@ function filterEventsNetworkOnly(){
   const de = document.getElementById('de').value;
   if(ds && de) data = data.filter(e => e.dateISO >= ds && e.dateISO <= de);
 
-  const fleetVal = normalizeFleetInput(document.getElementById('fleet').value);
-  if(fleetVal) data = data.filter(e => e.fleet === fleetVal);
+  // Handle multi-select fleet
+  const fleetSel = document.getElementById('fleet');
+  const selectedFleets = Array.from(fleetSel.selectedOptions).map(opt => opt.value).filter(Boolean);
+  if(selectedFleets.length > 0) {
+    data = data.filter(e => selectedFleets.includes(e.fleet));
+  }
 
-  const vehicle = document.getElementById('vehicle').value.trim().toLowerCase();
-  if(vehicle) data = data.filter(e => (e.vehicle || '').toLowerCase().includes(vehicle));
+  // Handle vehicle dropdown
+  const vehicle = document.getElementById('vehicle').value;
+  if(vehicle) data = data.filter(e => e.vehicle === vehicle);
 
   return data;
 }
@@ -3518,7 +3618,7 @@ function debounce(fn, ms=180){
 }
 const rerenderDebounced = debounce(() => { renderAll(); schedulePersist(); }, 120);
 
-['fleet','vehicle','ds','de','fleet-prec-color','fov-gap-filter','int-cap-text'].forEach(id => {
+['vehicle','ds','de','fleet-prec-color','fov-gap-filter','int-cap-text'].forEach(id => {
   const el = document.getElementById(id);
   if(!el) return;
   el.addEventListener('input', () => {
@@ -3528,8 +3628,24 @@ const rerenderDebounced = debounce(() => { renderAll(); schedulePersist(); }, 12
   });
   el.addEventListener('change', () => {
     if(id === 'ds' || id === 'de') updateDateDisplay();
+    // Update vehicle dropdown when changing dates
+    if(id === 'ds' || id === 'de') refreshVehicleDropdown();
     rerenderDebounced();
   });
+});
+
+// Report week dropdown listener
+document.getElementById('report-week').addEventListener('change', () => {
+  // When report week changes, update dependent dropdowns
+  refreshVehicleDropdown();
+  rerenderDebounced();
+});
+
+// Fleet multi-select listener
+document.getElementById('fleet').addEventListener('change', () => {
+  // When fleet selection changes, update vehicle dropdown
+  refreshVehicleDropdown();
+  rerenderDebounced();
 });
 
 // Option B: Total Events KPI toggle (Include FOV)
@@ -3552,35 +3668,33 @@ document.getElementById('class-search').addEventListener('input', () => {
   schedulePersist();
 });
 
-// Weeks all/none
-document.getElementById('weeks-all').addEventListener('click', () => {
-  weeksManuallyChanged = true;
-  const all = Array.from(new Set(rawEvents.map(e => e.fileWeek))).sort();
-  selectedWeeks = new Set(all);
-  refreshWeeksPanel();
-  refreshClassificationPanel();
-  applyAutoDateRange();
-  renderAll();
-  schedulePersist();
-});
-document.getElementById('weeks-none').addEventListener('click', () => {
-  weeksManuallyChanged = true;
-  selectedWeeks = new Set();
-  refreshWeeksPanel();
-  refreshClassificationPanel();
-  renderAll();
-  schedulePersist();
-});
+// Weeks all/none (buttons removed from UI - now handled by report-week dropdown)
+const weeksAllBtn = document.getElementById('weeks-all');
+if (weeksAllBtn) {
+  weeksAllBtn.addEventListener('click', () => {
+    weeksManuallyChanged = true;
+    const all = Array.from(new Set(rawEvents.map(e => e.fileWeek))).sort();
+    selectedWeeks = new Set(all);
+    refreshWeeksPanel();
+    refreshClassificationPanel();
+    applyAutoDateRange();
+    renderAll();
+    schedulePersist();
+  });
+}
 
-// Class all/none
-document.getElementById('class-all').addEventListener('click', () => {
-  classesManuallyChanged = true;
-  const classes = getAvailableClassifications();
-  selectedClasses = new Set(classes);
-  refreshClassificationPanel();
-  renderAll();
-  schedulePersist();
-});
+const weeksNoneBtn = document.getElementById('weeks-none');
+if (weeksNoneBtn) {
+  weeksNoneBtn.addEventListener('click', () => {
+    weeksManuallyChanged = true;
+    selectedWeeks = new Set();
+    refreshWeeksPanel();
+    refreshClassificationPanel();
+    renderAll();
+    schedulePersist();
+  });
+}
+
 // Class all/none
 document.getElementById('class-all').addEventListener('click', () => {
   classesManuallyChanged = true;
@@ -3616,8 +3730,20 @@ document.getElementById('emails-none').addEventListener('click', () => {
 
 // Reset filters (keeps data)
 document.getElementById('reset-filters').addEventListener('click', () => {
-  document.getElementById('fleet').value = '';
+  // Reset report week to "all"
+  const reportWeekSel = document.getElementById('report-week');
+  Array.from(reportWeekSel.options).forEach(opt => {
+    opt.selected = (opt.value === 'all');
+  });
+  
+  // Reset fleet multi-select (deselect all)
+  const fleetSel = document.getElementById('fleet');
+  Array.from(fleetSel.options).forEach(opt => opt.selected = false);
+  
+  // Reset vehicle dropdown
   document.getElementById('vehicle').value = '';
+  
+  // Reset dates
   document.getElementById('ds').value = '';
   document.getElementById('de').value = '';
 
@@ -3645,6 +3771,8 @@ document.getElementById('reset-filters').addEventListener('click', () => {
   fovSort = { col:'events_count', dir:'desc' };
   intSort = { col:'verified_total', dir:'desc' };
 
+  refreshReportWeekDropdown();
+  refreshVehicleDropdown();
   refreshWeeksPanel();
   refreshClassificationPanel();
   refreshEmailsPanel();
@@ -3677,6 +3805,8 @@ document.getElementById('clear-data').addEventListener('click', async () => {
   updateDateDisplay();
 
   refreshFleetDropdown();
+  refreshVehicleDropdown();
+  refreshReportWeekDropdown();
   refreshWeeksPanel();
   refreshClassificationPanel();
   refreshEmailsPanel();
@@ -3712,6 +3842,8 @@ document.getElementById('csv-upload').addEventListener('change', async (e) => {
 
     // refresh UI pieces
     refreshFleetDropdown();
+    refreshVehicleDropdown();
+    refreshReportWeekDropdown();
     refreshWeeksPanel();
     refreshClassificationPanel();
     refreshEmailsPanel();
