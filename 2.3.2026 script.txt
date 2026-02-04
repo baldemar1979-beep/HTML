@@ -409,24 +409,12 @@
 
         <div class="block">
           <div class="fg">
-            <label>Email Filter (updates Interventions KPIs + table)</label>
+            <label>Zone Filter (updates Interventions KPIs + table)</label>
             <div class="btnrow" style="margin-top:8px; margin-bottom:8px;">
               <button class="btn" type="button" id="emails-all">Select All</button>
               <button class="btn" type="button" id="emails-none">Clear</button>
             </div>
             <div id="emails-panel" style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
-              <div style="color:#7f8c8d;font-size:12px;">Upload CSV(s) to enable email filtering</div>
-            </div>
-            <div class="hint">
-              Red: <strong>&gt; 20</strong> • Yellow: <strong>10–20</strong> • Grey: <strong>&lt; 10</strong> • NA stays NA.
-            </div>
-          </div>
-        </div>
-
-        <div class="block">
-          <div class="fg">
-            <label style="margin-bottom:10px;">Zones</label>
-            <div style="display:flex; gap:15px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
               <label style="display:flex; align-items:center; gap:6px; margin:0; color:#2c3e50; font-weight:normal;">
                 <input type="checkbox" class="int-zone-checkbox" data-zone="all" checked />
                 <span>All</span>
@@ -444,7 +432,9 @@
                 <span style="color:#e74c3c; font-weight:bold;">&lt; 50%</span>
               </label>
             </div>
-            <div class="hint">Select zones to filter interventions table rows.</div>
+            <div class="hint">
+              Select zones to filter interventions table rows.
+            </div>
           </div>
         </div>
       </div>
@@ -1547,47 +1537,9 @@ function bucketLabel(b){
   if(b === 'grey') return 'Grey (< 10)';
   return 'N/A';
 }
+// refreshEmailsPanel is no longer needed - zone checkboxes are now static in HTML
 function refreshEmailsPanel(){
-  const panel = document.getElementById('emails-panel');
-  if(!rawEvents.length){
-    panel.innerHTML = `<div style="color:#7f8c8d;font-size:12px;">Upload CSV(s) to enable email filtering</div>`;
-    selectedEmailBuckets = new Set();
-    emailsManuallyChanged = false;
-    return;
-  }
-
-  const buckets = getAllEmailBuckets();
-  if(selectedEmailBuckets.size === 0 && !emailsManuallyChanged){
-    selectedEmailBuckets = new Set(buckets);
-  } else {
-    selectedEmailBuckets = new Set(Array.from(selectedEmailBuckets).filter(b => buckets.includes(b)));
-  }
-
-  panel.innerHTML = buckets.map(b => {
-    const checked = selectedEmailBuckets.has(b) ? 'checked' : '';
-    const chip =
-      b === 'red' ? `<span class="email-chip email-high">${esc(bucketLabel(b))}</span>` :
-      b === 'yellow' ? `<span class="email-chip email-med">${esc(bucketLabel(b))}</span>` :
-      b === 'grey' ? `<span class="email-chip email-low">${esc(bucketLabel(b))}</span>` :
-      `<span class="email-chip email-na">${esc(bucketLabel(b))}</span>`;
-    return `
-      <label style="display:flex; align-items:center; gap:8px; margin:0; font-weight:normal;">
-        <input type="checkbox" class="eb" data-eb="${esc(b)}" ${checked}/>
-        ${chip}
-      </label>
-    `;
-  }).join('');
-
-  panel.querySelectorAll('.eb').forEach(cb => {
-    cb.addEventListener('change', () => {
-      emailsManuallyChanged = true;
-      const b = cb.getAttribute('data-eb');
-      if(cb.checked) selectedEmailBuckets.add(b);
-      else selectedEmailBuckets.delete(b);
-      renderAll();
-      schedulePersist();
-    });
-  });
+  // No-op: Zone filter checkboxes are now hardcoded in HTML
 }
 
 /* =======================================================================================
@@ -2257,13 +2209,11 @@ function renderInterventionsTab(eventsGlobal){
   const cap = getInterventionCap();
   const allRowsRaw = buildInterventionsRows(eventsGlobal);
 
-  // Apply Email Bucket filter (affects KPIs + table)
-  let allRows = applyEmailBucketFilter(allRowsRaw);
-
   // Apply Zone filter based on fleet precision
   const selectedZones = Array.from(document.querySelectorAll('.int-zone-checkbox:checked'))
     .map(cb => cb.dataset.zone);
   
+  let allRows = allRowsRaw;
   if(!selectedZones.includes('all') && window.__DASH_DATA__?.fleets){
     // Build fleet precision map
     const fleetPrecisionMap = new Map();
@@ -2282,7 +2232,7 @@ function renderInterventionsTab(eventsGlobal){
 
   if(!allRows.length){
     nodata.style.display = 'block';
-    nodata.textContent = 'No interventions rows match your current filters (including Email filter)';
+    nodata.textContent = 'No interventions rows match your current filters';
     return;
   }
   nodata.style.display = 'none';
@@ -3763,19 +3713,21 @@ document.getElementById('class-none').addEventListener('click', () => {
   schedulePersist();
 });
 
-// Emails all/none (Interventions)
+// Zone Select All/Clear buttons (formerly email buttons)
 document.getElementById('emails-all').addEventListener('click', () => {
-  emailsManuallyChanged = true;
-  selectedEmailBuckets = new Set(getAllEmailBuckets());
-  refreshEmailsPanel();
-  renderAll();
+  // Check all zone checkboxes
+  document.querySelectorAll('.int-zone-checkbox').forEach(cb => {
+    cb.checked = true;
+  });
+  renderInterventionsTab(currentNetworkFilteredEvents);
   schedulePersist();
 });
 document.getElementById('emails-none').addEventListener('click', () => {
-  emailsManuallyChanged = true;
-  selectedEmailBuckets = new Set();
-  refreshEmailsPanel();
-  renderAll();
+  // Uncheck all except 'all'
+  document.querySelectorAll('.int-zone-checkbox').forEach(cb => {
+    cb.checked = (cb.dataset.zone === 'all');
+  });
+  renderInterventionsTab(currentNetworkFilteredEvents);
   schedulePersist();
 });
 
