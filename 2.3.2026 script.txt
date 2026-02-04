@@ -208,23 +208,12 @@
       </div>
     </div>
 
-    <div class="info">
-      <div>
-        <strong>Purpose:</strong> Fleet/vehicle totals + precision (excludes FOV from denominator) + Interventions (cap KPI) + FOV camera misaligned analysis.
-        <span style="margin-left:10px;color:#7f8c8d;font-size:12px;">Column explanations are in <strong>How To</strong>.</span>
-      </div>
-      <div>
-        <a href="#" id="goHow">Open How To →</a>
-      </div>
-    </div>
-
     <div id="error" class="error"></div>
 
     <!-- Upload and Controls Section -->
     <div class="controls">
       <div class="controls-header">
-        <div class="controls-title">Controls</div>
-        <button class="btn" id="reset-filters" type="button">Reset Filters</button>
+        <div class="controls-title">Controls <button class="btn" id="reset-filters" type="button">Reset Filters</button></div>
       </div>
       
       <!-- Upload -->
@@ -1206,7 +1195,7 @@ document.addEventListener('click', (e) => {
   const btn = e.target.closest('.tabbtn');
   if(btn){ setActiveTab(btn.getAttribute('data-tab')); return; }
 });
-document.getElementById('goHow').addEventListener('click', (e) => { e.preventDefault(); setActiveTab('howTab'); });
+// goHow link removed from UI
 
 /* =======================================================================================
    SECTION: CSV parsing
