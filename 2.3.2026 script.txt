@@ -64,7 +64,10 @@
     .left { display:flex; align-items:center; gap:10px; }
     .count { color:#7f8c8d; font-size:12px; }
     details { background:#fafafa; border:1px solid #eee; border-radius:14px; padding:10px; }
-    summary { cursor:pointer; font-weight:950; color:#2c3e50; user-select:none; }
+    summary { cursor:pointer; font-weight:950; color:#2c3e50; user-select:none; font-size:13px; }
+    summary:hover { color:#1a252f; }
+    .block details { background:#fff; border:1px solid #e0e0e0; margin:0; }
+    .block summary { padding:8px 0; }
 
     /* ===== Custom Upload ===== */
     #csv-upload { display:none; }
@@ -249,69 +252,78 @@
 
       <!-- Report Week -->
       <div class="block small">
-        <div class="fg">
-          <label>Report Week</label>
-          <select id="report-week" multiple size="4" style="padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:#fff;">
-            <option value="all">(all)</option>
-          </select>
-          <div class="hint">Select from uploaded files.</div>
-        </div>
+        <details open>
+          <summary>Report Week</summary>
+          <div class="fg" style="margin-top:10px;">
+            <select id="report-week" multiple size="4" style="padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:#fff;">
+              <option value="all">(all)</option>
+            </select>
+            <div class="hint">Select from uploaded files.</div>
+          </div>
+        </details>
       </div>
 
-      <!-- Start Date -->
-      <div class="block small">
-        <div class="fg">
-          <label>Start Date</label>
-          <input type="date" id="ds" />
-          <div class="hint">Auto-populated from CSVs.</div>
-        </div>
-      </div>
-
-      <!-- End Date -->
-      <div class="block small">
-        <div class="fg">
-          <label>End Date</label>
-          <input type="date" id="de" />
-          <div class="hint">Auto-populated from CSVs.</div>
-        </div>
+      <!-- Date Range -->
+      <div class="block">
+        <details open>
+          <summary>Date Range</summary>
+          <div class="fg" style="margin-top:10px; display:flex; flex-direction:row; gap:10px; flex-wrap:wrap;">
+            <div class="fg" style="flex:1; min-width:160px;">
+              <label style="font-size:12px; font-weight:600;">Start Date</label>
+              <input type="date" id="ds" />
+              <div class="hint">Auto-populated from CSVs.</div>
+            </div>
+            <div class="fg" style="flex:1; min-width:160px;">
+              <label style="font-size:12px; font-weight:600;">End Date</label>
+              <input type="date" id="de" />
+              <div class="hint">Auto-populated from CSVs.</div>
+            </div>
+          </div>
+        </details>
       </div>
 
       <!-- Fleet -->
       <div class="block small">
-        <div class="fg">
-          <label>Fleet</label>
-          <select id="fleet" multiple size="3" style="padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:#fff;">
-            <option value="">(all)</option>
-          </select>
-          <div class="hint">Multi-select available.</div>
-        </div>
+        <details open>
+          <summary>Fleet</summary>
+          <div class="fg" style="margin-top:10px;">
+            <select id="fleet" multiple size="3" style="padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:#fff;">
+              <option value="">(all)</option>
+            </select>
+            <div class="hint">Multi-select available.</div>
+          </div>
+        </details>
       </div>
 
       <!-- Asset -->
       <div class="block small">
-        <div class="fg">
-          <label>Asset</label>
-          <select id="vehicle" style="padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:#fff;">
-            <option value="">(all)</option>
-          </select>
-          <div class="hint">Select vehicle.</div>
-        </div>
+        <details open>
+          <summary>Asset</summary>
+          <div class="fg" style="margin-top:10px;">
+            <select id="vehicle" style="padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:#fff;">
+              <option value="">(all)</option>
+            </select>
+            <div class="hint">Select vehicle.</div>
+          </div>
+        </details>
       </div>
 
       <!-- Classification Filter -->
       <div class="block wide" style="flex-basis: 100%;">
-        <div class="fg">
-          <label>Classification (updates Fleet KPIs + Fleet table)</label>
-          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
-            <input id="class-search" type="text" placeholder="Search classification..." style="flex:1; min-width:160px; padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px;" />
-            <button class="btn" type="button" id="class-all">Select All</button>
-            <button class="btn" type="button" id="class-none">Clear</button>
+        <details open>
+          <summary>Classification (updates Fleet KPIs + Fleet table)</summary>
+          <div class="fg" style="margin-top:10px;">
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+              <input id="class-search" type="text" placeholder="Search classification..." style="flex:1; min-width:160px; padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px;" />
+              <button class="btn" type="button" id="class-all">Select All</button>
+              <button class="btn" type="button" id="class-none">Clear</button>
+            </div>
+            <div id="class-panel" class="panel" style="height:160px;">
+              <div style="color:#7f8c8d;font-size:12px;">Upload CSV(s) to load classifications</div>
+            </div>
+            <div class="hint">This filter updates Fleet KPIs + Fleet table (does not change Interventions/FOV).</div>
           </div>
-          <div id="class-panel" class="panel" style="height:160px;">
-            <div style="color:#7f8c8d;font-size:12px;">Upload CSV(s) to load classifications</div>
-          </div>
-          <div class="hint">This filter updates Fleet KPIs + Fleet table (does not change Interventions/FOV).</div>
-        </div>
+        </details>
       </div>
     </div>
 
@@ -863,6 +875,16 @@ function schedulePersist(){
 }
 
 function uiSnapshot(){
+  // Get collapsible filter states
+  const collapsibleStates = {};
+  document.querySelectorAll('.controls details').forEach((details, idx) => {
+    const summary = details.querySelector('summary');
+    if(summary) {
+      const key = summary.textContent.trim().substring(0, 30); // Use first 30 chars as key
+      collapsibleStates[key] = details.open;
+    }
+  });
+  
   return {
     activeTab: document.querySelector('.tabbtn.active')?.getAttribute('data-tab') || 'fleetTab',
     weeks: Array.from(selectedWeeks),
@@ -890,6 +912,9 @@ function uiSnapshot(){
     
     // Trends aggregation mode toggle
     trendsAggregateMode,
+    
+    // Collapsible filter states
+    collapsibleStates,
 
     sortState,
     fovSort,
@@ -948,6 +973,19 @@ function applyUiSnapshot(s){
     trendsAggregateMode = s.trendsAggregateMode;
     const toggle = document.getElementById('trends-aggregate-toggle');
     if(toggle) toggle.checked = (trendsAggregateMode === 'all');
+  }
+  
+  // Restore collapsible filter states
+  if(s.collapsibleStates && typeof s.collapsibleStates === 'object') {
+    document.querySelectorAll('.controls details').forEach((details) => {
+      const summary = details.querySelector('summary');
+      if(summary) {
+        const key = summary.textContent.trim().substring(0, 30);
+        if(key in s.collapsibleStates) {
+          details.open = s.collapsibleStates[key];
+        }
+      }
+    });
   }
 
   if(s.sortState) sortState = s.sortState;
@@ -3887,6 +3925,13 @@ document.getElementById('csv-upload').addEventListener('change', async (e) => {
 
   // first render
   renderAll();
+  
+  // Add event listeners for collapsible sections to persist state
+  document.querySelectorAll('.controls details').forEach(details => {
+    details.addEventListener('toggle', () => {
+      schedulePersist();
+    });
+  });
 })();
 </script>
 
