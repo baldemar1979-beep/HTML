@@ -73,15 +73,15 @@
     #csv-upload { display:none; }
     .uploader{
       border:1px solid #ddd; border-radius:14px; padding:10px; background:#fafafa; height: 170px;
-      display:flex; flex-direction:column; justify-content:space-between; gap:10px;
+      display:flex; flex-direction:column; justify-content:flex-start; gap:8px;
     }
-    .upload-top { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    .upload-top { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
     .upload-btn{
       cursor:pointer; border:1px solid #ddd; background:#fff; border-radius:12px; padding:8px 12px;
       font-weight:950; display:inline-flex; align-items:center; gap:8px; user-select:none;
     }
     .upload-btn:hover { background:#f7f7f7; }
-    .file-status{ font-size:12px; color:#7f8c8d; max-width: 260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .file-status{ font-size:12px; color:#7f8c8d; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .upload-actions { display:flex; gap:10px; flex-wrap:wrap; }
 
     /* ===== Stats row (Fleet tab only) ===== */
@@ -220,34 +220,30 @@
 
     <div id="error" class="error"></div>
 
-    <!-- Upload Section -->
+    <!-- Upload and Controls Section -->
     <div class="controls">
+      <div class="controls-header">
+        <div class="controls-title">Controls</div>
+        <button class="btn" id="reset-filters" type="button">Reset Filters</button>
+      </div>
+      
+      <!-- Upload -->
       <div class="block small">
         <div class="fg">
           <label>Upload Weekly CSV(s)</label>
           <div class="uploader">
             <div class="upload-top">
               <label class="upload-btn" for="csv-upload">Choose Files</label>
-              <div class="file-status" id="file-status">No files selected</div>
+              <button class="btn" id="clear-data" type="button">Clear Data</button>
               <input type="file" id="csv-upload" accept=".csv" multiple />
             </div>
+            <div class="file-status" id="file-status">No files selected</div>
             <div class="hint">Name files like: <strong>2026 week 01.csv</strong> or <strong>2026week 1.csv</strong>.</div>
-            <div class="upload-actions">
-              <button class="btn" id="clear-data" type="button">Clear Data</button>
-            </div>
             <div class="hint" style="margin-top:4px;">
               <strong>Persistence:</strong> Data + filters auto-save in this browser and restore on reopen.
             </div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Controls Section -->
-    <div class="controls">
-      <div class="controls-header">
-        <div class="controls-title">Controls</div>
-        <button class="btn" id="reset-filters" type="button">Reset Filters</button>
       </div>
 
       <!-- Report Week -->
