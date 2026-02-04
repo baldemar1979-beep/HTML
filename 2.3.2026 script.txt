@@ -229,11 +229,16 @@
       
       <!-- Upload -->
       <div class="block small">
-        <div class="upload-top">
-          <label class="upload-btn" for="csv-upload">Choose Files</label>
-          <button class="btn" id="clear-data" type="button">Clear Data</button>
-          <input type="file" id="csv-upload" accept=".csv" multiple />
-        </div>
+        <details open>
+          <summary>Upload Weekly CSV(s)</summary>
+          <div class="fg" style="margin-top:10px;">
+            <div class="upload-top">
+              <label class="upload-btn" for="csv-upload">Choose Files</label>
+              <button class="btn" id="clear-data" type="button">Clear Data</button>
+              <input type="file" id="csv-upload" accept=".csv" multiple />
+            </div>
+          </div>
+        </details>
       </div>
 
       <!-- Report Week -->
@@ -241,9 +246,9 @@
         <details open>
           <summary>Report Week</summary>
           <div class="fg" style="margin-top:10px;">
-            <select id="report-week" multiple size="4" style="padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:#fff;">
-              <option value="all">(all)</option>
-            </select>
+            <div id="week-panel" class="panel" style="height:160px;">
+              <div style="color:#7f8c8d;font-size:12px;">No weeks loaded yet</div>
+            </div>
             <div class="hint">Select from uploaded files.</div>
           </div>
         </details>
@@ -882,7 +887,7 @@ function uiSnapshot(){
     emailBuckets: Array.from(selectedEmailBuckets),
     emailsManuallyChanged,
 
-    reportWeek: Array.from(document.getElementById('report-week').selectedOptions).map(opt => opt.value),
+    // reportWeek removed - now using weeks array for checkbox state
     fleet: Array.from(document.getElementById('fleet').selectedOptions).map(opt => opt.value),
     vehicle: document.getElementById('vehicle').value,
     ds: document.getElementById('ds').value,
@@ -917,13 +922,7 @@ function applyUiSnapshot(s){
 
   if(s.activeTab) setActiveTab(s.activeTab);
 
-  // Restore report-week multi-select
-  if(Array.isArray(s.reportWeek)) {
-    const reportWeekSel = document.getElementById('report-week');
-    Array.from(reportWeekSel.options).forEach(opt => {
-      opt.selected = s.reportWeek.includes(opt.value);
-    });
-  }
+  // reportWeek dropdown removed - now using weeks checkboxes
   
   // Restore fleet multi-select
   if(Array.isArray(s.fleet)) {
@@ -1415,9 +1414,52 @@ function isFovMisaligned(e){
    SECTION: Weeks + Classification panels
 ======================================================================================= */
 function refreshWeeksPanel(){
-  // This function has been replaced by refreshReportWeekDropdown
-  // Keeping it as a stub for backward compatibility
-  refreshReportWeekDropdown();
+  const panel = document.getElementById('week-panel');
+  if(!rawEvents.length){
+    panel.innerHTML = `<div style="color:#7f8c8d;font-size:12px;">No weeks loaded yet</div>`;
+    selectedWeeks = new Set();
+    weeksManuallyChanged = false;
+    return;
+  }
+  const counts = new Map();
+  for(const e of rawEvents){
+    counts.set(e.fileWeek, (counts.get(e.fileWeek) || 0) + 1);
+  }
+  const weeks = Array.from(counts.keys()).sort();
+
+  if(selectedWeeks.size === 0 && !weeksManuallyChanged){
+    selectedWeeks = new Set(weeks);
+  } else {
+    selectedWeeks = new Set(Array.from(selectedWeeks).filter(w => counts.has(w)));
+  }
+
+  panel.innerHTML = weeks.map(w => {
+    const checked = selectedWeeks.has(w) ? 'checked' : '';
+    const count = counts.get(w);
+    return `
+      <div class="item">
+        <div class="left">
+          <input type="checkbox" class="wk" data-week="${esc(w)}" ${checked}/>
+          <div><strong>${esc(w)}</strong></div>
+        </div>
+        <div class="count">${count.toLocaleString()} events</div>
+      </div>
+    `;
+  }).join('');
+
+  panel.querySelectorAll('.wk').forEach(cb => {
+    cb.addEventListener('change', () => {
+      weeksManuallyChanged = true;
+      const wk = cb.getAttribute('data-week');
+      if(cb.checked) selectedWeeks.add(wk);
+      else selectedWeeks.delete(wk);
+
+      refreshClassificationPanel();
+      applyAutoDateRange();
+      renderAll();
+      schedulePersist();
+    });
+  });
 }
 function getAvailableClassifications(){
   const base = selectedWeeks.size ? rawEvents.filter(e => selectedWeeks.has(e.fileWeek)) : rawEvents;
@@ -1614,58 +1656,10 @@ function refreshVehicleDropdown(){
   });
 }
 
-function refreshReportWeekDropdown(){
-  const sel = document.getElementById('report-week');
-  const currentSelection = Array.from(sel.selectedOptions).map(opt => opt.value);
-  
-  if(!rawEvents.length){
-    sel.innerHTML = '<option value="all">(all)</option>';
-    return;
-  }
-  
-  const weeks = Array.from(new Set(rawEvents.map(e => e.fileWeek))).filter(Boolean).sort();
-  
-  // Build dropdown with (all) option and week options
-  sel.innerHTML = '<option value="all">(all)</option>';
-  weeks.forEach(w => {
-    const opt = document.createElement('option');
-    opt.value = w;
-    opt.textContent = w;
-    sel.appendChild(opt);
-  });
-  
-  // Restore previous selection or default to "all"
-  if(currentSelection.length > 0) {
-    Array.from(sel.options).forEach(opt => {
-      opt.selected = currentSelection.includes(opt.value);
-    });
-  } else {
-    sel.options[0].selected = true; // Select "(all)" by default
-  }
-  
-  // Update selectedWeeks based on the dropdown
-  updateSelectedWeeksFromDropdown();
-}
-
-function updateSelectedWeeksFromDropdown(){
-  const sel = document.getElementById('report-week');
-  const selectedValues = Array.from(sel.selectedOptions).map(opt => opt.value);
-  
-  if(selectedValues.includes('all') || selectedValues.length === 0) {
-    // If "all" is selected or nothing selected, select all available weeks
-    const weeks = Array.from(new Set(rawEvents.map(e => e.fileWeek))).filter(Boolean);
-    selectedWeeks = new Set(weeks);
-  } else {
-    selectedWeeks = new Set(selectedValues);
-  }
-}
-
 function filterEventsNetworkOnly(){
   let data = rawEvents;
   if(rawEvents.length){
-    // Update selectedWeeks from report-week dropdown
-    updateSelectedWeeksFromDropdown();
-    
+    // Use selectedWeeks directly (managed by week panel checkboxes)
     if(selectedWeeks.size === 0) return [];
     data = data.filter(e => selectedWeeks.has(e.fileWeek));
   }
@@ -3658,12 +3652,7 @@ const rerenderDebounced = debounce(() => { renderAll(); schedulePersist(); }, 12
   });
 });
 
-// Report week dropdown listener
-document.getElementById('report-week').addEventListener('change', () => {
-  // When report week changes, update dependent dropdowns
-  refreshVehicleDropdown();
-  rerenderDebounced();
-});
+// Report week dropdown listener removed - now using week checkboxes
 
 // Fleet multi-select listener
 document.getElementById('fleet').addEventListener('change', () => {
@@ -3754,11 +3743,7 @@ document.getElementById('emails-none').addEventListener('click', () => {
 
 // Reset filters (keeps data)
 document.getElementById('reset-filters').addEventListener('click', () => {
-  // Reset report week to "all"
-  const reportWeekSel = document.getElementById('report-week');
-  Array.from(reportWeekSel.options).forEach(opt => {
-    opt.selected = (opt.value === 'all');
-  });
+  // reportWeek dropdown removed - now using weeks checkboxes
   
   // Reset fleet multi-select (deselect all)
   const fleetSel = document.getElementById('fleet');
@@ -3795,7 +3780,6 @@ document.getElementById('reset-filters').addEventListener('click', () => {
   fovSort = { col:'events_count', dir:'desc' };
   intSort = { col:'verified_total', dir:'desc' };
 
-  refreshReportWeekDropdown();
   refreshVehicleDropdown();
   refreshWeeksPanel();
   refreshClassificationPanel();
@@ -3830,7 +3814,6 @@ document.getElementById('clear-data').addEventListener('click', async () => {
 
   refreshFleetDropdown();
   refreshVehicleDropdown();
-  refreshReportWeekDropdown();
   refreshWeeksPanel();
   refreshClassificationPanel();
   refreshEmailsPanel();
@@ -3866,7 +3849,6 @@ document.getElementById('csv-upload').addEventListener('change', async (e) => {
     // refresh UI pieces
     refreshFleetDropdown();
     refreshVehicleDropdown();
-    refreshReportWeekDropdown();
     refreshWeeksPanel();
     refreshClassificationPanel();
     refreshEmailsPanel();
