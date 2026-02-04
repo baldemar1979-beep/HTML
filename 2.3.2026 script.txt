@@ -238,10 +238,6 @@
               <input type="file" id="csv-upload" accept=".csv" multiple />
             </div>
             <div class="file-status" id="file-status">No files selected</div>
-            <div class="hint">Name files like: <strong>2026 week 01.csv</strong> or <strong>2026week 1.csv</strong>.</div>
-            <div class="hint" style="margin-top:4px;">
-              <strong>Persistence:</strong> Data + filters auto-save in this browser and restore on reopen.
-            </div>
           </div>
         </div>
       </div>
@@ -1002,7 +998,7 @@ async function restoreAll(){
     const data = await idbGet('rawEvents');
     if(Array.isArray(data) && data.length){
       rawEvents = data;
-      document.getElementById('file-status').textContent = `Restored ${rawEvents.length.toLocaleString()} events (saved)`;
+      document.getElementById('file-status').textContent = `${rawEvents.length.toLocaleString()} events`;
     }
   }catch(_){}
   try{
@@ -3872,7 +3868,7 @@ document.getElementById('csv-upload').addEventListener('change', async (e) => {
     // status
     const wkSet = new Set(rawEvents.map(x => x.fileWeek));
     document.getElementById('file-status').textContent =
-      `Loaded ${files.length} file(s) • ${wkSet.size} week(s) • ${rawEvents.length.toLocaleString()} events`;
+      `${files.length} file(s) • ${wkSet.size} week(s) • ${rawEvents.length.toLocaleString()} events`;
 
     // refresh UI pieces
     refreshFleetDropdown();
