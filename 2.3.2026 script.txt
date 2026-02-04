@@ -81,6 +81,7 @@
     .upload-btn{
       cursor:pointer; border:1px solid #ddd; background:#fff; border-radius:12px; padding:8px 12px;
       font-weight:950; display:inline-flex; align-items:center; gap:8px; user-select:none;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
     }
     .upload-btn:hover { background:#f7f7f7; }
     .file-status{ font-size:12px; color:#7f8c8d; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -269,10 +270,11 @@
         <details open>
           <summary>Fleet</summary>
           <div class="fg" style="margin-top:10px;">
-            <select id="fleet" multiple size="3" style="padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:#fff;">
+            <input id="fleet" list="fleet-list" style="padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:#fff;" placeholder="Type to search or select...">
+            <datalist id="fleet-list">
               <option value="">(all)</option>
-            </select>
-            <div class="hint">Multi-select available.</div>
+            </datalist>
+            <div class="hint">Type to search or select from list.</div>
           </div>
         </details>
       </div>
@@ -337,25 +339,28 @@
       <div class="section-title">Fleet Management</div>
 
       <div class="controls" style="margin-bottom:14px;">
-        <div class="block small">
+        <div class="block wide">
           <div class="fg">
-            <label>Fleet Precision Color</label>
-            <select id="fleet-prec-color">
-              <option value="all" selected>All</option>
-              <option value="red">Red (&lt; 50%)</option>
-              <option value="yellow">Yellow (50–59.9%)</option>
-              <option value="green">Green (≥ 60%)</option>
-            </select>
-            <div class="hint">Applies to fleets shown (and their vehicle rows).</div>
-          </div>
-        </div>
-
-        <div class="block">
-          <div class="fg">
-            <label>Notes</label>
-            <div class="hint">
-              Click any <strong>Total / Valid / False / FOV</strong> number to open evidence (event IDs + week + timestamps) and download CSV.
+            <label style="margin-bottom:10px;">Fleet Precision Zone</label>
+            <div style="display:flex; gap:15px; flex-wrap:wrap; align-items:center;">
+              <label style="display:flex; align-items:center; gap:6px; margin:0; color:#ffffff; font-weight:normal;">
+                <input type="checkbox" class="zone-checkbox" data-zone="all" checked />
+                <span>All</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:6px; margin:0; color:#ffffff; font-weight:normal;">
+                <input type="checkbox" class="zone-checkbox" data-zone="red" />
+                <span>Red (&lt; 50%)</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:6px; margin:0; color:#ffffff; font-weight:normal;">
+                <input type="checkbox" class="zone-checkbox" data-zone="yellow" />
+                <span>Yellow (50–59.9%)</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:6px; margin:0; color:#ffffff; font-weight:normal;">
+                <input type="checkbox" class="zone-checkbox" data-zone="green" />
+                <span>Green (≥ 60%)</span>
+              </label>
             </div>
+            <div class="hint">Select precision zones to filter fleets shown (and their vehicle rows).</div>
           </div>
         </div>
       </div>
@@ -879,12 +884,12 @@ function uiSnapshot(){
     emailsManuallyChanged,
 
     // reportWeek removed - now using weeks array for checkbox state
-    fleet: Array.from(document.getElementById('fleet').selectedOptions).map(opt => opt.value),
+    fleet: document.getElementById('fleet').value,
     vehicle: document.getElementById('vehicle').value,
     ds: document.getElementById('ds').value,
     de: document.getElementById('de').value,
 
-    fleetPrecColor: document.getElementById('fleet-prec-color').value,
+    fleetPrecZones: Array.from(document.querySelectorAll('.zone-checkbox:checked')).map(cb => cb.dataset.zone),
     fovGap: document.getElementById('fov-gap-filter').value,
 
     intCapText: document.getElementById('int-cap-text').value,
@@ -915,19 +920,21 @@ function applyUiSnapshot(s){
 
   // reportWeek dropdown removed - now using weeks checkboxes
   
-  // Restore fleet multi-select
-  if(Array.isArray(s.fleet)) {
-    const fleetSel = document.getElementById('fleet');
-    Array.from(fleetSel.options).forEach(opt => {
-      opt.selected = s.fleet.includes(opt.value);
-    });
+  // Restore fleet input value (now using input with datalist)
+  if(typeof s.fleet === 'string') {
+    document.getElementById('fleet').value = s.fleet;
   }
   
   if(typeof s.vehicle === 'string') document.getElementById('vehicle').value = s.vehicle;
   if(typeof s.ds === 'string') document.getElementById('ds').value = s.ds;
   if(typeof s.de === 'string') document.getElementById('de').value = s.de;
 
-  if(typeof s.fleetPrecColor === 'string') document.getElementById('fleet-prec-color').value = s.fleetPrecColor;
+  // Restore fleet precision zones
+  if(Array.isArray(s.fleetPrecZones)) {
+    document.querySelectorAll('.zone-checkbox').forEach(cb => {
+      cb.checked = s.fleetPrecZones.includes(cb.dataset.zone);
+    });
+  }
   if(typeof s.fovGap === 'string') document.getElementById('fov-gap-filter').value = s.fovGap;
   if(typeof s.intCapText === 'string') document.getElementById('int-cap-text').value = s.intCapText;
 
@@ -1597,18 +1604,16 @@ function applyAutoDateRange(){
    SECTION: Network filters (classification is NOT part of this)
 ======================================================================================= */
 function refreshFleetDropdown(){
-  const sel = document.getElementById('fleet');
+  const input = document.getElementById('fleet');
+  const datalist = document.getElementById('fleet-list');
   const fleets = Array.from(new Set(rawEvents.map(e => e.fleet))).filter(Boolean).sort();
-  // Keep the first "(all)" option and add fleet options
-  const allOption = sel.querySelector('option[value=""]');
-  sel.innerHTML = '';
-  if (allOption) sel.appendChild(allOption);
-  else sel.innerHTML = '<option value="">(all)</option>';
+  
+  // Clear and rebuild datalist
+  datalist.innerHTML = '<option value="">(all)</option>';
   fleets.forEach(f => {
     const opt = document.createElement('option');
     opt.value = f;
-    opt.textContent = f;
-    sel.appendChild(opt);
+    datalist.appendChild(opt);
   });
 }
 function normalizeFleetInput(val){
@@ -1623,12 +1628,12 @@ function refreshVehicleDropdown(){
     events = events.filter(e => selectedWeeks.has(e.fileWeek));
   }
   
-  // Get selected fleets
-  const fleetSel = document.getElementById('fleet');
-  const selectedFleets = Array.from(fleetSel.selectedOptions).map(opt => opt.value).filter(Boolean);
+  // Get selected fleet from input
+  const fleetInput = document.getElementById('fleet');
+  const selectedFleet = normalizeFleetInput(fleetInput.value);
   
-  if(selectedFleets.length > 0) {
-    events = events.filter(e => selectedFleets.includes(e.fleet));
+  if(selectedFleet && selectedFleet !== '(all)') {
+    events = events.filter(e => e.fleet === selectedFleet);
   }
   
   const vehicles = Array.from(new Set(events.map(e => e.vehicle))).filter(Boolean).sort();
@@ -1659,11 +1664,11 @@ function filterEventsNetworkOnly(){
   const de = document.getElementById('de').value;
   if(ds && de) data = data.filter(e => e.dateISO >= ds && e.dateISO <= de);
 
-  // Handle multi-select fleet
-  const fleetSel = document.getElementById('fleet');
-  const selectedFleets = Array.from(fleetSel.selectedOptions).map(opt => opt.value).filter(Boolean);
-  if(selectedFleets.length > 0) {
-    data = data.filter(e => selectedFleets.includes(e.fleet));
+  // Handle single fleet input with datalist
+  const fleetInput = document.getElementById('fleet');
+  const selectedFleet = normalizeFleetInput(fleetInput.value);
+  if(selectedFleet && selectedFleet !== '(all)') {
+    data = data.filter(e => e.fleet === selectedFleet);
   }
 
   // Handle vehicle dropdown
@@ -1980,10 +1985,13 @@ function renderFleetTable(fleets, vehicles){
   }
   nodata.style.display = 'none';
 
-  const precColor = document.getElementById('fleet-prec-color')?.value || 'all';
+  // Get selected zones from checkboxes
+  const selectedZones = Array.from(document.querySelectorAll('.zone-checkbox:checked'))
+    .map(cb => cb.dataset.zone);
+  
   let fleetsFiltered = fleets;
-  if(precColor !== 'all'){
-    fleetsFiltered = fleets.filter(f => precisionBucket(f.precision) === precColor);
+  if(!selectedZones.includes('all')){
+    fleetsFiltered = fleets.filter(f => selectedZones.includes(precisionBucket(f.precision)));
   }
 
   const fleetsSorted = sortFleets(fleetsFiltered);
@@ -3627,7 +3635,7 @@ function debounce(fn, ms=180){
 }
 const rerenderDebounced = debounce(() => { renderAll(); schedulePersist(); }, 120);
 
-['vehicle','ds','de','fleet-prec-color','fov-gap-filter','int-cap-text'].forEach(id => {
+['vehicle','ds','de','fov-gap-filter','int-cap-text'].forEach(id => {
   const el = document.getElementById(id);
   if(!el) return;
   el.addEventListener('input', () => {
@@ -3732,13 +3740,36 @@ document.getElementById('emails-none').addEventListener('click', () => {
   schedulePersist();
 });
 
+// Zone checkbox listeners
+document.querySelectorAll('.zone-checkbox').forEach(cb => {
+  cb.addEventListener('change', () => {
+    // If 'all' is checked, uncheck others
+    if(cb.dataset.zone === 'all' && cb.checked) {
+      document.querySelectorAll('.zone-checkbox').forEach(otherCb => {
+        if(otherCb.dataset.zone !== 'all') otherCb.checked = false;
+      });
+    } else if(cb.dataset.zone !== 'all' && cb.checked) {
+      // If any specific zone is checked, uncheck 'all'
+      const allCb = document.querySelector('.zone-checkbox[data-zone="all"]');
+      if(allCb) allCb.checked = false;
+    }
+    // If no checkboxes are checked, check 'all'
+    const anyChecked = Array.from(document.querySelectorAll('.zone-checkbox')).some(c => c.checked);
+    if(!anyChecked) {
+      const allCb = document.querySelector('.zone-checkbox[data-zone="all"]');
+      if(allCb) allCb.checked = true;
+    }
+    renderAll();
+    schedulePersist();
+  });
+});
+
 // Reset filters (keeps data)
 document.getElementById('reset-filters').addEventListener('click', () => {
   // reportWeek dropdown removed - now using weeks checkboxes
   
-  // Reset fleet multi-select (deselect all)
-  const fleetSel = document.getElementById('fleet');
-  Array.from(fleetSel.options).forEach(opt => opt.selected = false);
+  // Reset fleet input (now using input with datalist)
+  document.getElementById('fleet').value = '';
   
   // Reset vehicle dropdown
   document.getElementById('vehicle').value = '';
@@ -3747,7 +3778,10 @@ document.getElementById('reset-filters').addEventListener('click', () => {
   document.getElementById('ds').value = '';
   document.getElementById('de').value = '';
 
-  document.getElementById('fleet-prec-color').value = 'all';
+  // Reset zone checkboxes
+  document.querySelectorAll('.zone-checkbox').forEach(cb => {
+    cb.checked = (cb.dataset.zone === 'all');
+  });
   document.getElementById('fov-gap-filter').value = 'all';
   document.getElementById('int-cap-text').value = '10';
   document.getElementById('kpi-include-fov').checked = false;
