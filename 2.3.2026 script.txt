@@ -154,17 +154,14 @@
     /* KPI grid */
     .kpi-grid { display:flex; flex-wrap:wrap; gap:10px; }
     .kpi { flex: 1 1 180px; background:#fafafa; border:1px solid #eee; border-radius:14px; padding:10px 12px; min-width: 220px; }
-    .kpi .k { font-size:11px; color:#7f8c8d; text-transform:uppercase; letter-spacing:0.5px; }
-    .kpi .v { font-size:18px; font-weight:1000; color:#2c3e50; margin-top:6px; }
+    .kpi .k { font-size:11px; color:#7f8c8d; text-transform:uppercase; letter-spacing:0.5px; margin-top:6px; }
+    .kpi .v { font-size:18px; font-weight:1000; color:#2c3e50; }
 
-    /* Interventions screenshot-like header layout */
+    /* Interventions KPI summary section */
     .int-header{
       background:#fff; border-radius:14px; box-shadow:0 2px 4px rgba(0,0,0,0.08);
       padding:14px 18px; margin-bottom:14px;
     }
-    .int-row{ display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start; }
-    .int-left{ flex: 0 1 320px; min-width: 280px; }
-    .int-right{ flex: 1 1 900px; min-width: 520px; }
     .int-kpi-title{ font-size:13px; font-weight:1000; color:#2c3e50; margin-bottom:8px; }
     .int-footnote{ font-size:12px; color:#7f8c8d; margin-top:10px; }
 
@@ -388,41 +385,66 @@
     <div id="interventionsTab" class="tabpage">
       <div class="section-title">Interventions — CAP KPI (per vehicle, per shift, per calendar day)</div>
 
+      <!-- KPI Summary Section -->
       <div class="int-header">
-        <div class="int-row">
-          <div class="int-left">
-            <div class="fg">
-              <label>Max Calls / Shift (CAP)</label>
-              <input type="text" id="int-cap-text" value="10" inputmode="numeric" />
-              <div class="hint">
-                Cap applied to <strong>verified valid fatigue</strong> per vehicle-shift per day.<br/>
-                Calls = min(CAP, Verified). Emails = max(0, Verified − CAP).
-              </div>
-            </div>
+        <div class="int-kpi-title">CAP KPI Summary (current Network Filters)</div>
+        <div class="kpi-grid" id="int-kpis"></div>
+        <div class="int-footnote">
+          <strong>Total Verified Valid Fatigue</strong> is the denominator. <strong>Emails</strong> cell is clickable (opens evidence + downloadable CSV).
+        </div>
+      </div>
 
-            <details style="margin-top:12px; background:#fff;">
-              <summary>Email Filter (updates Interventions KPIs + table)</summary>
-              <div style="margin-top:10px;" class="btnrow">
-                <button class="btn" type="button" id="emails-all">Select All</button>
-                <button class="btn" type="button" id="emails-none">Clear</button>
-              </div>
-              <div id="emails-panel" class="panel" style="margin-top:10px; height:160px;">
-                <div style="color:#7f8c8d;font-size:12px;">Upload CSV(s) to enable email filtering</div>
-              </div>
-              <div class="hint">
-                Red: <strong>&gt; 20</strong> • Yellow: <strong>10–20</strong> • Grey: <strong>&lt; 10</strong> • NA stays NA.
-              </div>
-            </details>
+      <!-- Filters Section -->
+      <div class="controls" style="margin-bottom:14px;">
+        <div class="block small">
+          <div class="fg">
+            <label>Max Calls / Shift (CAP)</label>
+            <input type="text" id="int-cap-text" value="10" inputmode="numeric" />
+            <div class="hint">
+              Cap applied to <strong>verified valid fatigue</strong> per vehicle-shift per day.<br/>
+              Calls = min(CAP, Verified). Emails = max(0, Verified − CAP).
+            </div>
           </div>
+        </div>
 
-          <div class="int-right">
-            <div class="int-kpi-title">CAP KPI Summary (current Network Filters)</div>
-            <div class="kpi-grid" id="int-kpis"></div>
-            <div class="int-footnote">
-              Counts are shown with % in the same tile (count + percent), using <strong>Total Verified Valid Fatigue</strong> as the denominator.
-              <br/>
-              <strong>Emails</strong> cell is clickable (opens evidence + downloadable CSV).
+        <div class="block">
+          <div class="fg">
+            <label>Email Filter (updates Interventions KPIs + table)</label>
+            <div class="btnrow" style="margin-top:8px; margin-bottom:8px;">
+              <button class="btn" type="button" id="emails-all">Select All</button>
+              <button class="btn" type="button" id="emails-none">Clear</button>
             </div>
+            <div id="emails-panel" class="panel" style="height:120px;">
+              <div style="color:#7f8c8d;font-size:12px;">Upload CSV(s) to enable email filtering</div>
+            </div>
+            <div class="hint">
+              Red: <strong>&gt; 20</strong> • Yellow: <strong>10–20</strong> • Grey: <strong>&lt; 10</strong> • NA stays NA.
+            </div>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="fg">
+            <label style="margin-bottom:10px;">Zones (Interventions Filter)</label>
+            <div style="display:flex; gap:15px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+              <label style="display:flex; align-items:center; gap:6px; margin:0; color:#2c3e50; font-weight:normal;">
+                <input type="checkbox" class="int-zone-checkbox" data-zone="all" checked />
+                <span>All</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:6px; margin:0; color:#e74c3c; font-weight:normal;">
+                <input type="checkbox" class="int-zone-checkbox" data-zone="red" />
+                <span style="color:#e74c3c; font-weight:bold;">Red (&lt; 50%)</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:6px; margin:0; color:#f39c12; font-weight:normal;">
+                <input type="checkbox" class="int-zone-checkbox" data-zone="yellow" />
+                <span style="color:#f39c12; font-weight:bold;">Yellow (50–59.9%)</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:6px; margin:0; color:#27ae60; font-weight:normal;">
+                <input type="checkbox" class="int-zone-checkbox" data-zone="green" />
+                <span style="color:#27ae60; font-weight:bold;">Green (≥ 60%)</span>
+              </label>
+            </div>
+            <div class="hint">Select zones to filter interventions table rows.</div>
           </div>
         </div>
       </div>
@@ -2257,13 +2279,13 @@ function renderInterventionsTab(eventsGlobal){
   const verifiedInNightCap = allRows.filter(r => r.shift === 'Night' && r.verified_total >= cap).reduce((s,r)=> s + (r.verified_total||0), 0);
 
   kpis.innerHTML = [
-    {k:`Total Verified Valid Fatigue (count / % of total verified)`, v: `${totalVerified.toLocaleString()} (100%)`},
+    {k:`Total Verified Valid Fatigue`, v: `${totalVerified.toLocaleString()}`},
     {k:`Day Verified (count / % of verified)`, v: `${dayVerified.toLocaleString()} (${pct(dayVerified,totalVerified)}%)`},
     {k:`Night Verified (count / % of verified)`, v: `${nightVerified.toLocaleString()} (${pct(nightVerified,totalVerified)}%)`},
     {k:`Vehicle-shifts ≥ CAP (${cap}) (verified / % of verified)`, v: `${verifiedInCapShifts.toLocaleString()} (${pct(verifiedInCapShifts,totalVerified)}%)`},
     {k:`Day shifts ≥ CAP (verified / % of verified)`, v: `${verifiedInDayCap.toLocaleString()} (${pct(verifiedInDayCap,totalVerified)}%)`},
     {k:`Night shifts ≥ CAP (verified / % of verified)`, v: `${verifiedInNightCap.toLocaleString()} (${pct(verifiedInNightCap,totalVerified)}%)`}
-  ].map(x => `<div class="kpi"><div class="k">${esc(x.k)}</div><div class="v">${esc(x.v)}</div></div>`).join('');
+  ].map(x => `<div class="kpi"><div class="v">${esc(x.v)}</div><div class="k">${esc(x.k)}</div></div>`).join('');
 
   const rows = sortInterventionsRows(allRows);
   intRowByKey = new Map(rows.map(r => [r.key, r]));
