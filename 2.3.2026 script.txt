@@ -229,16 +229,10 @@
       
       <!-- Upload -->
       <div class="block small">
-        <div class="fg">
-          <label>Upload Weekly CSV(s)</label>
-          <div class="uploader">
-            <div class="upload-top">
-              <label class="upload-btn" for="csv-upload">Choose Files</label>
-              <button class="btn" id="clear-data" type="button">Clear Data</button>
-              <input type="file" id="csv-upload" accept=".csv" multiple />
-            </div>
-            <div class="file-status" id="file-status">No files selected</div>
-          </div>
+        <div class="upload-top">
+          <label class="upload-btn" for="csv-upload">Choose Files</label>
+          <button class="btn" id="clear-data" type="button">Clear Data</button>
+          <input type="file" id="csv-upload" accept=".csv" multiple />
         </div>
       </div>
 
@@ -998,7 +992,7 @@ async function restoreAll(){
     const data = await idbGet('rawEvents');
     if(Array.isArray(data) && data.length){
       rawEvents = data;
-      document.getElementById('file-status').textContent = `${rawEvents.length.toLocaleString()} events`;
+      // File status removed: document.getElementById('file-status').textContent = `${rawEvents.length.toLocaleString()} events`;
     }
   }catch(_){}
   try{
@@ -3828,7 +3822,7 @@ document.getElementById('clear-data').addEventListener('click', async () => {
   try { await idbClear(); } catch(_){}
   try { localStorage.removeItem(LS_KEY); } catch(_){}
 
-  document.getElementById('file-status').textContent = 'No files selected';
+  // File status removed: document.getElementById('file-status').textContent = 'No files selected';
   document.getElementById('csv-upload').value = '';
   document.getElementById('ds').value = '';
   document.getElementById('de').value = '';
@@ -3867,8 +3861,7 @@ document.getElementById('csv-upload').addEventListener('change', async (e) => {
 
     // status
     const wkSet = new Set(rawEvents.map(x => x.fileWeek));
-    document.getElementById('file-status').textContent =
-      `${files.length} file(s) • ${wkSet.size} week(s) • ${rawEvents.length.toLocaleString()} events`;
+    // File status removed: document.getElementById('file-status').textContent = `${files.length} file(s) • ${wkSet.size} week(s) • ${rawEvents.length.toLocaleString()} events`;
 
     // refresh UI pieces
     refreshFleetDropdown();
