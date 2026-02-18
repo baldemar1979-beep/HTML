@@ -473,6 +473,20 @@
       <div class="controls" style="margin-bottom:14px;">
         <div class="block small">
           <div class="fg">
+            <label>Filter by FOV Event Type</label>
+            <select id="fov-type-filter">
+              <option value="all" selected>All FOV Events</option>
+              <option value="misaligned">Camera Misaligned</option>
+              <option value="sensor_covered">Sensor Covered</option>
+            </select>
+            <div class="hint">
+              Select which type of FOV events to display. "All FOV Events" shows both misaligned and sensor covered.
+            </div>
+          </div>
+        </div>
+
+        <div class="block small">
+          <div class="fg">
             <label>Filter by Proximity Risk (hide other rows)</label>
             <select id="fov-gap-filter">
               <option value="all" selected>All</option>
@@ -515,7 +529,7 @@
                 <th class="sortable" data-fcol="vehicle_id">Vehicle ID</th>
                 <th class="sortable" data-fcol="fleet">Fleet</th>
                 <th class="sortable" data-fcol="vehicle">Vehicle</th>
-                <th class="num sortable" data-fcol="events_count">Events Count</th>
+                <th class="num sortable" data-fcol="events_count" id="fov-events-count-header">Events Count</th>
                 <th class="num sortable" data-fcol="verified_before">Verified Fatigue Before</th>
                 <th class="sortable" data-fcol="last_verified_ms">Last Verified Fatigue</th>
                 <th class="sortable" data-fcol="gap_bucket">Proximity Gap</th>
@@ -890,6 +904,7 @@ function uiSnapshot(){
     de: document.getElementById('de').value,
 
     fleetPrecZones: Array.from(document.querySelectorAll('.zone-checkbox:checked')).map(cb => cb.dataset.zone),
+    fovType: document.getElementById('fov-type-filter').value,
     fovGap: document.getElementById('fov-gap-filter').value,
 
     intCapText: document.getElementById('int-cap-text').value,
@@ -935,6 +950,7 @@ function applyUiSnapshot(s){
       cb.checked = s.fleetPrecZones.includes(cb.dataset.zone);
     });
   }
+  if(typeof s.fovType === 'string') document.getElementById('fov-type-filter').value = s.fovType;
   if(typeof s.fovGap === 'string') document.getElementById('fov-gap-filter').value = s.fovGap;
   if(typeof s.intCapText === 'string') document.getElementById('int-cap-text').value = s.intCapText;
 
@@ -1395,17 +1411,25 @@ function isVerifiedFatigue(e){
   const conf = (e.confirmation || '').toLowerCase().trim();
   return (conf === 'verified') && (c === 'fatigue - microsleep' || c === 'fatigue - drowsiness');
 }
-function isFovMisaligned(e){
+function getFovEventType(e) {
   const c = (e.classification || '').toLowerCase().trim();
   const t = (e.event_type || '').toLowerCase().trim();
-
-  const hasMisaligned = c.includes('camera misaligned') || t.includes('camera misaligned');
-
-  const isFov =
+  
+  const isFov = 
     t.includes('field of view') || t.includes('fov') ||
     c.includes('field of view') || c.startsWith('fov exception');
-
-  return isFov && hasMisaligned;
+  
+  if (!isFov) return null;
+  
+  if (c.includes('camera misaligned') || t.includes('camera misaligned')) {
+    return 'misaligned';
+  }
+  
+  if (c.includes('sensor covered') || t.includes('sensor covered')) {
+    return 'sensor_covered';
+  }
+  
+  return 'other';
 }
 
 /* =======================================================================================
@@ -2328,7 +2352,7 @@ document.addEventListener('click', (e) => {
    SECTION: FOV tab
 ======================================================================================= */
 function buildFovMisalignedRows(eventsGlobal){
-  const misEvents = eventsGlobal.filter(e => isFovMisaligned(e) && Number.isFinite(e.dt_ms));
+  const misEvents = eventsGlobal.filter(e => getFovEventType(e) !== null && Number.isFinite(e.dt_ms));
 
   const group = new Map();
   for(const e of misEvents){
@@ -2513,7 +2537,30 @@ function renderFovTab(eventsGlobal){
     return;
   }
 
-  const rowsAll = buildFovMisalignedRows(eventsGlobal);
+  // Filter events by FOV type
+  const fovTypeFilter = document.getElementById('fov-type-filter')?.value || 'all';
+  
+  // Update column header based on filter
+  const eventsCountHeader = document.getElementById('fov-events-count-header');
+  if (eventsCountHeader) {
+    if (fovTypeFilter === 'all') {
+      eventsCountHeader.textContent = 'Events Count (All FOV)';
+    } else if (fovTypeFilter === 'misaligned') {
+      eventsCountHeader.textContent = 'Events Count (Misaligned)';
+    } else if (fovTypeFilter === 'sensor_covered') {
+      eventsCountHeader.textContent = 'Events Count (Sensor Covered)';
+    }
+  }
+  
+  const filteredEvents = eventsGlobal.filter(e => {
+    const type = getFovEventType(e);
+    if (fovTypeFilter === 'all') return type !== null;
+    if (fovTypeFilter === 'misaligned') return type === 'misaligned';
+    if (fovTypeFilter === 'sensor_covered') return type === 'sensor_covered';
+    return false;
+  });
+
+  const rowsAll = buildFovMisalignedRows(filteredEvents);
   
   // Debug rowsAll generation
   console.log("[buildFovMisalignedRows] Total rows processed:", rowsAll.length);
@@ -3026,7 +3073,8 @@ function renderTrendsTab(eventsGlobal) {
     
     const metrics = weekMap.get(week);
     const { isFov, isValidFatigue } = classifyEvent(e);
-    const isFovMis = isFovMisaligned(e);
+    const fovType = getFovEventType(e);
+    const isFovMis = (fovType === 'misaligned');
     
     metrics.total++;
     if (isValidFatigue) metrics.valid++;
@@ -3635,7 +3683,7 @@ function debounce(fn, ms=180){
 }
 const rerenderDebounced = debounce(() => { renderAll(); schedulePersist(); }, 120);
 
-['vehicle','ds','de','fov-gap-filter','int-cap-text'].forEach(id => {
+['vehicle','ds','de','fov-type-filter','fov-gap-filter','int-cap-text'].forEach(id => {
   const el = document.getElementById(id);
   if(!el) return;
   el.addEventListener('input', () => {
@@ -3782,6 +3830,7 @@ document.getElementById('reset-filters').addEventListener('click', () => {
   document.querySelectorAll('.zone-checkbox').forEach(cb => {
     cb.checked = (cb.dataset.zone === 'all');
   });
+  document.getElementById('fov-type-filter').value = 'all';
   document.getElementById('fov-gap-filter').value = 'all';
   document.getElementById('int-cap-text').value = '10';
   document.getElementById('kpi-include-fov').checked = false;
