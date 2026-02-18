@@ -1414,21 +1414,21 @@ function isVerifiedFatigue(e){
 function getFovEventType(e) {
   const c = (e.classification || '').toLowerCase().trim();
   const t = (e.event_type || '').toLowerCase().trim();
-  
-  const isFov = 
+
+  const isFov =
     t.includes('field of view') || t.includes('fov') ||
     c.includes('field of view') || c.startsWith('fov exception');
-  
+
   if (!isFov) return null;
-  
+
   if (c.includes('camera misaligned') || t.includes('camera misaligned')) {
     return 'misaligned';
   }
-  
+
   if (c.includes('sensor covered') || t.includes('sensor covered')) {
     return 'sensor_covered';
   }
-  
+
   return 'other';
 }
 
@@ -2539,7 +2539,7 @@ function renderFovTab(eventsGlobal){
 
   // Filter events by FOV type
   const fovTypeFilter = document.getElementById('fov-type-filter')?.value || 'all';
-  
+
   // Update column header based on filter
   const eventsCountHeader = document.getElementById('fov-events-count-header');
   if (eventsCountHeader) {
@@ -2551,7 +2551,7 @@ function renderFovTab(eventsGlobal){
       eventsCountHeader.textContent = 'Events Count (Sensor Covered)';
     }
   }
-  
+
   const filteredEvents = eventsGlobal.filter(e => {
     const type = getFovEventType(e);
     if (fovTypeFilter === 'all') return type !== null;
