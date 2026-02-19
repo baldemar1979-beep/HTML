@@ -293,7 +293,7 @@
       </div>
 
       <!-- Classification Filter -->
-      <div class="block wide" style="flex-basis: 100%;">
+      <div id="class-filter-block" class="block wide" style="flex-basis: 100%;">
         <details open>
           <summary>Classification (updates Fleet KPIs + Fleet table)</summary>
           <div class="fg" style="margin-top:10px;">
@@ -484,6 +484,21 @@
             <div class="hint">
               Applies to <strong>Proximity Gap</strong> (last prior verified fatigue → first misaligned event). Rows not matching are hidden.
             </div>
+          </div>
+        </div>
+
+        <div class="block small" id="fov-type-filter-block">
+          <div class="fg">
+            <label>Filter by FOV Exception Type</label>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+              <input id="fov-type-search" type="text" placeholder="Search type..." style="flex:1; min-width:140px; padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px;" />
+              <button class="btn" type="button" id="fov-type-all">Select All</button>
+              <button class="btn" type="button" id="fov-type-none">Clear</button>
+            </div>
+            <div id="fov-type-panel" class="panel" style="height:120px;">
+              <div style="color:#7f8c8d;font-size:12px;">Upload CSV(s) to load FOV types</div>
+            </div>
+            <div class="hint">Filters the FOV table by exception type (does not affect other tabs).</div>
           </div>
         </div>
 
@@ -883,6 +898,9 @@ function uiSnapshot(){
     emailBuckets: Array.from(selectedEmailBuckets),
     emailsManuallyChanged,
 
+    fovTypes: Array.from(selectedFovTypes),
+    fovTypesManuallyChanged,
+
     // reportWeek removed - now using weeks array for checkbox state
     fleet: document.getElementById('fleet').value,
     vehicle: document.getElementById('vehicle').value,
@@ -947,6 +965,9 @@ function applyUiSnapshot(s){
   if(Array.isArray(s.emailBuckets)) selectedEmailBuckets = new Set(s.emailBuckets);
   if(typeof s.emailsManuallyChanged === 'boolean') emailsManuallyChanged = s.emailsManuallyChanged;
 
+  if(Array.isArray(s.fovTypes)) selectedFovTypes = new Set(s.fovTypes);
+  if(typeof s.fovTypesManuallyChanged === 'boolean') fovTypesManuallyChanged = s.fovTypesManuallyChanged;
+
   if(typeof s.includeFovInTotalKpi === 'boolean'){
     const cb = document.getElementById('kpi-include-fov');
     if(cb) cb.checked = s.includeFovInTotalKpi;
@@ -1010,6 +1031,9 @@ let classesManuallyChanged = false;
 
 let selectedEmailBuckets = new Set();   // 'red','yellow','grey','na'
 let emailsManuallyChanged = false;
+
+let selectedFovTypes = new Set();
+let fovTypesManuallyChanged = false;
 
 // Trends aggregation mode: 'all' = all selected weeks, 'latest' = latest week only
 let trendsAggregateMode = 'all';
@@ -1186,6 +1210,10 @@ function setActiveTab(tabId){
   if(btn) btn.classList.add('active');
 
   document.getElementById('statsRow').style.display = (tabId === 'fleetTab') ? 'flex' : 'none';
+
+  // Classification filter: only visible on Fleet tab
+  const classFilterBlock = document.getElementById('class-filter-block');
+  if (classFilterBlock) classFilterBlock.style.display = (tabId === 'fleetTab') ? '' : 'none';
   
   // Hide Upload CSV section and Advanced Classification Filter when Trends tab is active
   const uploadBlock = document.querySelector('.block.small');
@@ -1453,6 +1481,7 @@ function refreshWeeksPanel(){
       else selectedWeeks.delete(wk);
 
       refreshClassificationPanel();
+      refreshFovTypePanel();
       applyAutoDateRange();
       renderAll();
       schedulePersist();
@@ -1514,8 +1543,71 @@ function applyClassificationFilter_FleetTabOnly(events){
 }
 
 /* =======================================================================================
-   SECTION: Email filter panel (Interventions)
+   SECTION: FOV type filter panel (FOV tab only)
 ======================================================================================= */
+function isFovEventType(e){
+  const t = (e.event_type || '').toLowerCase().trim();
+  const cl = (e.classification || '').toLowerCase().trim();
+  return t.includes('field of view') || t.includes('fov') || cl.includes('field of view') || cl.startsWith('fov exception');
+}
+function getFovClassifications(){
+  const base = selectedWeeks.size ? rawEvents.filter(e => selectedWeeks.has(e.fileWeek)) : rawEvents;
+  const set = new Set();
+  for(const e of base){
+    if(isFovEventType(e)){
+      const c = (e.classification || '').trim();
+      if(c) set.add(c);
+    }
+  }
+  return Array.from(set).sort((a,b) => a.localeCompare(b));
+}
+function refreshFovTypePanel(){
+  const panel = document.getElementById('fov-type-panel');
+  if(!panel) return;
+  const search = (document.getElementById('fov-type-search')?.value || '').toLowerCase();
+  if(!rawEvents.length){
+    panel.innerHTML = `<div style="color:#7f8c8d;font-size:12px;">Upload CSV(s) to load FOV types</div>`;
+    selectedFovTypes = new Set();
+    fovTypesManuallyChanged = false;
+    return;
+  }
+  const types = getFovClassifications();
+  if(selectedFovTypes.size === 0 && !fovTypesManuallyChanged){
+    selectedFovTypes = new Set(types);
+  } else {
+    selectedFovTypes = new Set(Array.from(selectedFovTypes).filter(c => types.includes(c)));
+  }
+  const shown = search ? types.filter(c => c.toLowerCase().includes(search)) : types;
+  panel.innerHTML = shown.map(c => {
+    const checked = selectedFovTypes.has(c) ? 'checked' : '';
+    return `
+      <div class="item">
+        <div class="left">
+          <input type="checkbox" class="ft" data-fovtype="${esc(c)}" ${checked}/>
+          <div>${esc(c)}</div>
+        </div>
+        <div class="count">&nbsp;</div>
+      </div>
+    `;
+  }).join('') || `<div style="color:#7f8c8d;font-size:12px;">No FOV types match your search</div>`;
+  panel.querySelectorAll('.ft').forEach(cb => {
+    cb.addEventListener('change', () => {
+      fovTypesManuallyChanged = true;
+      const c = cb.getAttribute('data-fovtype');
+      if(cb.checked) selectedFovTypes.add(c);
+      else selectedFovTypes.delete(c);
+      renderAll();
+      schedulePersist();
+    });
+  });
+}
+function applyFovTypeFilter(events){
+  if(selectedFovTypes.size === 0) return events;
+  return events.filter(e => {
+    if(!isFovEventType(e)) return true; // keep non-FOV events (needed for VF proximity computation)
+    return selectedFovTypes.has((e.classification || '').trim());
+  });
+}
 function getAllEmailBuckets(){
   return ['red','yellow','grey','na'];
 }
@@ -2513,7 +2605,7 @@ function renderFovTab(eventsGlobal){
     return;
   }
 
-  const rowsAll = buildFovMisalignedRows(eventsGlobal);
+  const rowsAll = buildFovMisalignedRows(applyFovTypeFilter(eventsGlobal));
   
   // Debug rowsAll generation
   console.log("[buildFovMisalignedRows] Total rows processed:", rowsAll.length);
@@ -3740,6 +3832,25 @@ document.getElementById('emails-none').addEventListener('click', () => {
   schedulePersist();
 });
 
+// FOV type filter buttons + search (FOV tab)
+document.getElementById('fov-type-all').addEventListener('click', () => {
+  fovTypesManuallyChanged = true;
+  selectedFovTypes = new Set(getFovClassifications());
+  refreshFovTypePanel();
+  renderAll();
+  schedulePersist();
+});
+document.getElementById('fov-type-none').addEventListener('click', () => {
+  fovTypesManuallyChanged = true;
+  selectedFovTypes = new Set();
+  refreshFovTypePanel();
+  renderAll();
+  schedulePersist();
+});
+document.getElementById('fov-type-search').addEventListener('input', () => {
+  refreshFovTypePanel();
+});
+
 // Zone checkbox listeners
 document.querySelectorAll('.zone-checkbox').forEach(cb => {
   cb.addEventListener('change', () => {
@@ -3799,6 +3910,10 @@ document.getElementById('reset-filters').addEventListener('click', () => {
   emailsManuallyChanged = false;
   selectedEmailBuckets = new Set();
 
+  // fov types
+  fovTypesManuallyChanged = false;
+  selectedFovTypes = new Set();
+
   // expansion + sorts
   expandedFleets = new Set();
   sortState = { col:null, dir:'asc' };
@@ -3808,6 +3923,7 @@ document.getElementById('reset-filters').addEventListener('click', () => {
   refreshVehicleDropdown();
   refreshWeeksPanel();
   refreshClassificationPanel();
+  refreshFovTypePanel();
   refreshEmailsPanel();
   applyAutoDateRange();
   renderAll();
@@ -3826,6 +3942,9 @@ document.getElementById('clear-data').addEventListener('click', async () => {
   selectedEmailBuckets = new Set();
   emailsManuallyChanged = false;
 
+  selectedFovTypes = new Set();
+  fovTypesManuallyChanged = false;
+
   expandedFleets = new Set();
 
   try { await idbClear(); } catch(_){}
@@ -3841,6 +3960,7 @@ document.getElementById('clear-data').addEventListener('click', async () => {
   refreshVehicleDropdown();
   refreshWeeksPanel();
   refreshClassificationPanel();
+  refreshFovTypePanel();
   refreshEmailsPanel();
   renderAll();
 });
@@ -3876,6 +3996,7 @@ document.getElementById('csv-upload').addEventListener('change', async (e) => {
     refreshVehicleDropdown();
     refreshWeeksPanel();
     refreshClassificationPanel();
+    refreshFovTypePanel();
     refreshEmailsPanel();
     applyAutoDateRange();
 
@@ -3906,6 +4027,7 @@ document.getElementById('csv-upload').addEventListener('change', async (e) => {
   refreshFleetDropdown();
   refreshWeeksPanel();
   refreshClassificationPanel();
+  refreshFovTypePanel();
   refreshEmailsPanel();
 
   // If weeks were restored and dates are blank, auto-range
