@@ -150,9 +150,12 @@
 
     .cell-green { background:#e6f7e6; border-radius:10px; padding:6px 10px; display:inline-block; }
     .subnote { font-size:12px; color:#7f8c8d; margin-top:6px; line-height:1.35; }
+    .fov-type-link { display:block; font-size:12px; }
+    .fov-type-label { color:#7f8c8d; }
 
     /* KPI grid */
     .kpi-grid { display:flex; flex-wrap:wrap; gap:10px; }
+    .kpi-row { display:flex; flex-wrap:wrap; gap:10px; width:100%; }
     .kpi { flex: 1 1 180px; background:#fafafa; border:1px solid #eee; border-radius:14px; padding:10px 12px; min-width: 220px; }
     .kpi .k { font-size:11px; color:#7f8c8d; text-transform:uppercase; letter-spacing:0.5px; }
     .kpi .v { font-size:18px; font-weight:1000; color:#2c3e50; margin-top:6px; }
@@ -474,15 +477,34 @@
         <div class="block small">
           <div class="fg">
             <label>Filter by Proximity Risk (hide other rows)</label>
-            <select id="fov-gap-filter">
-              <option value="all" selected>All</option>
-              <option value="red">Red (&gt; 24 hours)</option>
-              <option value="yellow">Yellow (≤ 24 hours)</option>
-              <option value="green">Green (≤ 1 hour)</option>
-              <option value="na">N/A (no prior verified fatigue)</option>
-            </select>
+            <div id="fov-gap-panel" class="panel" style="height:100px;">
+              <div class="item">
+                <div class="left">
+                  <input type="checkbox" class="gb" id="fov-gap-red" data-gb="red" checked/>
+                  <div><span class="chip chip-red">Red (&gt; 5 hours)</span></div>
+                </div>
+              </div>
+              <div class="item">
+                <div class="left">
+                  <input type="checkbox" class="gb" id="fov-gap-yellow" data-gb="yellow" checked/>
+                  <div><span class="chip chip-yellow">Yellow (1–5 hours)</span></div>
+                </div>
+              </div>
+              <div class="item">
+                <div class="left">
+                  <input type="checkbox" class="gb" id="fov-gap-green" data-gb="green" checked/>
+                  <div><span class="chip chip-green">Green (&lt; 1 hour)</span></div>
+                </div>
+              </div>
+              <div class="item">
+                <div class="left">
+                  <input type="checkbox" class="gb" id="fov-gap-na" data-gb="na" checked/>
+                  <div><span class="chip chip-na">N/A</span></div>
+                </div>
+              </div>
+            </div>
             <div class="hint">
-              Applies to <strong>Proximity Gap</strong> (last verified fatigue → first FOV event). <strong>Greater gap = higher risk</strong> (Red &gt; 24 h). Rows not matching are hidden.
+              Applies to <strong>Proximity Gap</strong> (last verified fatigue → first FOV event). <strong>Greater gap = higher risk</strong> (Red &gt; 5 h). Rows not matching are hidden.
             </div>
           </div>
         </div>
@@ -513,7 +535,7 @@
             <label>FOV Summary (current Network Filters)</label>
             <div class="kpi-grid" id="fov-kpis"></div>
             <div class="hint" style="margin-top:8px;">
-              <strong>Proximity Gap</strong>: time from last verified fatigue to first FOV event. <strong>Larger gap = higher risk</strong> (Red &gt; 24 h, Green ≤ 1 h).
+              <strong>Proximity Gap</strong>: time from last verified fatigue to first FOV event. <strong>Larger gap = higher risk</strong> (Red &gt; 5 h, Green &lt; 1 h).
               <br/>
               <strong>Exposure</strong> indicates how long the FOV issue persisted (first to latest FOV event).
               <br/>
@@ -777,10 +799,10 @@
                 <li>Verified fatigue includes <code>fatigue - microsleep</code> and <code>fatigue - drowsiness</code> with <code>confirmation=verified</code>.</li>
               </ul>
             </li>
-            <li><strong>Proximity Gap</strong> = time from last verified fatigue to first FOV event. <strong>Greater gap = higher risk</strong> (Red &gt; 24 h, Green ≤ 1 h).</li>
+            <li><strong>Proximity Gap</strong> = time from last verified fatigue to first FOV event. <strong>Greater gap = higher risk</strong> (Red &gt; 5 h, Green &lt; 1 h).</li>
             <li><strong>Exposure</strong> = latest FOV event − first FOV event. Measures how long the vehicle continued operating with FOV issues.</li>
             <li><strong>Last Verified Fatigue</strong> is green-highlighted when it occurs after the latest FOV event (camera likely fixed).</li>
-            <li><strong>Fleet rows</strong> are collapsed by default; click a fleet to expand vehicle detail. Aggregated proximity/exposure shows the worst value across vehicles.</li>
+            <li><strong>Fleet rows</strong> are collapsed by default; click a fleet to expand vehicle detail. Proximity Gap and Exposure show fleet totals (sum of per-vehicle seconds) when collapsed.</li>
           </ul>
         </div>
       </div>
@@ -907,6 +929,8 @@ function uiSnapshot(){
     fovTypes: Array.from(selectedFovTypes),
     fovTypesManuallyChanged,
 
+    gapBuckets: Array.from(selectedGapBuckets),
+
     // reportWeek removed - now using weeks array for checkbox state
     fleet: document.getElementById('fleet').value,
     vehicle: document.getElementById('vehicle').value,
@@ -914,7 +938,6 @@ function uiSnapshot(){
     de: document.getElementById('de').value,
 
     fleetPrecZones: Array.from(document.querySelectorAll('.zone-checkbox:checked')).map(cb => cb.dataset.zone),
-    fovGap: document.getElementById('fov-gap-filter').value,
 
     intCapText: document.getElementById('int-cap-text').value,
 
@@ -959,8 +982,9 @@ function applyUiSnapshot(s){
       cb.checked = s.fleetPrecZones.includes(cb.dataset.zone);
     });
   }
-  if(typeof s.fovGap === 'string') document.getElementById('fov-gap-filter').value = s.fovGap;
   if(typeof s.intCapText === 'string') document.getElementById('int-cap-text').value = s.intCapText;
+
+  if(Array.isArray(s.gapBuckets)) selectedGapBuckets = new Set(s.gapBuckets);
 
   if(Array.isArray(s.weeks)) selectedWeeks = new Set(s.weeks);
   if(typeof s.weeksManuallyChanged === 'boolean') weeksManuallyChanged = s.weeksManuallyChanged;
@@ -1042,6 +1066,8 @@ let emailsManuallyChanged = false;
 let selectedFovTypes = new Set(['misaligned', 'sensor_covered']);
 let fovTypesManuallyChanged = false;
 
+let selectedGapBuckets = new Set(['red','yellow','green','na']);
+
 // Trends aggregation mode: 'all' = all selected weeks, 'latest' = latest week only
 let trendsAggregateMode = 'all';
 
@@ -1120,14 +1146,14 @@ function gapBucketFromSeconds(sec){
     return 'na'; // Default to N/A for invalid or missing data
   }
   // Greater gap = worse (camera unmonitored longer before FOV issue)
-  if(sec <= 3600) return 'green';    // ≤1 hour — recent valid event, low risk
-  if(sec <= 86400) return 'yellow';  // ≤24 hours — moderate risk
-  return 'red';                       // >24 hours — high risk (long gap)
+  if(sec < 3600) return 'green';    // < 1 hour — recent valid event, low risk
+  if(sec <= 18000) return 'yellow'; // 1–5 hours — moderate risk
+  return 'red';                      // > 5 hours — high risk (long gap)
 }
 function exposureBucketFromSeconds(sec){
   if(!Number.isFinite(sec)) return 'na';
-  if(sec <= 3600) return 'green';
-  if(sec <= 86400) return 'yellow';
+  if(sec < 3600) return 'green';
+  if(sec <= 18000) return 'yellow';
   return 'red';
 }
 // Bucket severity order: red > yellow > green > na (used by FOV fleet aggregation)
@@ -1496,6 +1522,7 @@ function refreshWeeksPanel(){
 
       refreshClassificationPanel();
       refreshFovTypePanel();
+      refreshGapPanel();
       applyAutoDateRange();
       renderAll();
       schedulePersist();
@@ -1581,6 +1608,12 @@ function refreshFovTypePanel(){
   const cbSen = document.getElementById('fov-type-sensor');
   if(cbMis) cbMis.checked = selectedFovTypes.has(FOV_TYPE_MISALIGNED);
   if(cbSen) cbSen.checked = selectedFovTypes.has(FOV_TYPE_SENSOR);
+}
+function refreshGapPanel(){
+  // Sync checkboxes from selectedGapBuckets state
+  document.querySelectorAll('.gb').forEach(cb => {
+    cb.checked = selectedGapBuckets.has(cb.getAttribute('data-gb'));
+  });
 }
 function applyFovTypeFilter(events){
   return events.filter(e => {
@@ -2415,7 +2448,9 @@ function buildFovMisalignedRows(eventsGlobal){
         events_count: 0,
         first_fov_ms: e.dt_ms,
         latest_fov_ms: e.dt_ms,
-        misalignedEvents: []
+        misalignedEvents: [],
+        misalignedEventsArr: [],
+        sensorCoveredEventsArr: []
       });
     }
     const g = group.get(key);
@@ -2424,6 +2459,9 @@ function buildFovMisalignedRows(eventsGlobal){
     if(e.dt_ms > g.latest_fov_ms) g.latest_fov_ms = e.dt_ms;
     if(!g.vehicle_id && e.vehicle_id) g.vehicle_id = e.vehicle_id;
     g.misalignedEvents.push(e);
+    const fovTypeKey = eventFovTypeKey(e);
+    if(fovTypeKey === FOV_TYPE_MISALIGNED) g.misalignedEventsArr.push(e);
+    else if(fovTypeKey === FOV_TYPE_SENSOR) g.sensorCoveredEventsArr.push(e);
   }
 
   const vfByKey = new Map();
@@ -2462,6 +2500,11 @@ function buildFovMisalignedRows(eventsGlobal){
     const firstFovEvent = g.misalignedEvents.reduce((best, e) => (!best || e.dt_ms < best.dt_ms) ? e : best, null);
     const latestFovEvent = g.misalignedEvents.reduce((best, e) => (!best || e.dt_ms > best.dt_ms) ? e : best, null);
 
+    const firstMisEvent = g.misalignedEventsArr.reduce((best, e) => (!best || e.dt_ms < best.dt_ms) ? e : best, null);
+    const latestMisEvent = g.misalignedEventsArr.reduce((best, e) => (!best || e.dt_ms > best.dt_ms) ? e : best, null);
+    const firstSensorEvent = g.sensorCoveredEventsArr.reduce((best, e) => (!best || e.dt_ms < best.dt_ms) ? e : best, null);
+    const latestSensorEvent = g.sensorCoveredEventsArr.reduce((best, e) => (!best || e.dt_ms > best.dt_ms) ? e : best, null);
+
     const row = {
       vehicle_id: g.vehicle_id || '',
       fleet: g.fleet,
@@ -2481,10 +2524,17 @@ function buildFovMisalignedRows(eventsGlobal){
       first_fov_ms: g.first_fov_ms,
       latest_fov_ms: g.latest_fov_ms,
 
+      hasMisaligned: g.misalignedEventsArr.length > 0,
+      hasSensorCovered: g.sensorCoveredEventsArr.length > 0,
+
       vfBeforeEvents: vfBefore,
       lastVerifiedEvent: last_verified_event ? [last_verified_event] : [],
       firstFovEvent: firstFovEvent ? [firstFovEvent] : [],
-      latestFovEvent: latestFovEvent ? [latestFovEvent] : []
+      latestFovEvent: latestFovEvent ? [latestFovEvent] : [],
+      firstMisEvent: firstMisEvent ? [firstMisEvent] : [],
+      latestMisEvent: latestMisEvent ? [latestMisEvent] : [],
+      firstSensorEvent: firstSensorEvent ? [firstSensorEvent] : [],
+      latestSensorEvent: latestSensorEvent ? [latestSensorEvent] : []
     };
 
     rows.push(row);
@@ -2517,9 +2567,9 @@ function buildFovMisalignedRows(eventsGlobal){
   
   // Log validation results
   console.log(`[buildFovMisalignedRows] Gap bucket validation for ${rows.length} rows:`);
-  console.log(`  - Red (≤1hr): ${bucketCounts.red}`);
-  console.log(`  - Yellow (1hr-24hr): ${bucketCounts.yellow}`);
-  console.log(`  - Green (>24hr): ${bucketCounts.green}`);
+  console.log(`  - Red (>5h — high risk): ${bucketCounts.red}`);
+  console.log(`  - Yellow (1–5h): ${bucketCounts.yellow}`);
+  console.log(`  - Green (<1h — low risk): ${bucketCounts.green}`);
   console.log(`  - NA (no prior verified): ${bucketCounts.na}`);
   console.log(`  - Invalid: ${bucketCounts.invalid}`);
   
@@ -2602,42 +2652,73 @@ function renderFovTab(eventsGlobal){
     }
   });
 
-  const totalVehicles = rowsAll.length;
-  const totalEvents = rowsAll.reduce((s,r)=>s + (r.events_count||0), 0);
+  const nMisaligned = rowsAll.filter(r => r.hasMisaligned).length;
+  const nSensorCovered = rowsAll.filter(r => r.hasSensorCovered).length;
 
   const nRed = rowsAll.filter(r => r.gap_bucket === 'red').length;
   const nYellow = rowsAll.filter(r => r.gap_bucket === 'yellow').length;
   const nGreen = rowsAll.filter(r => r.gap_bucket === 'green').length;
   const nNA = rowsAll.filter(r => r.gap_bucket === 'na').length;
 
-  const exposureSecs = rowsAll.map(r => r.exposure_seconds).filter(Number.isFinite);
-  const medExposure = median(exposureSecs);
-  const pctExposureOver24 = exposureSecs.length
-    ? Math.round((exposureSecs.filter(x => x > 86400).length / exposureSecs.length) * 100)
-    : 0;
+  const pctExposureOver24 = (() => {
+    const secs = rowsAll.map(r => r.exposure_seconds).filter(Number.isFinite);
+    return secs.length ? Math.round((secs.filter(x => x > 86400).length / secs.length) * 100) : 0;
+  })();
 
   const fixedLikely = rowsAll.filter(r => r.last_verified_after_latest_fov).length;
+
+  // Median gap and exposure per type (exclude N/A gap rows), single pass
+  const misGapSecs = [], sensorGapSecs = [], misExpSecs = [], sensorExpSecs = [];
+  for(const r of rowsAll){
+    const hasGap = r.gap_bucket !== 'na' && Number.isFinite(r.gap_seconds);
+    if(r.hasMisaligned){
+      if(hasGap) misGapSecs.push(r.gap_seconds);
+      if(Number.isFinite(r.exposure_seconds)) misExpSecs.push(r.exposure_seconds);
+    }
+    if(r.hasSensorCovered){
+      if(hasGap) sensorGapSecs.push(r.gap_seconds);
+      if(Number.isFinite(r.exposure_seconds)) sensorExpSecs.push(r.exposure_seconds);
+    }
+  }
+  const medMisGap = median(misGapSecs);
+  const medSensorGap = median(sensorGapSecs);
+  const medMisExp = median(misExpSecs);
+  const medSensorExp = median(sensorExpSecs);
   
   // Highlight N/A rows before rendering
   if (nNA > 0) {
     console.warn(`Warning: ${nNA} rows are unclassified (N/A). These are currently excluded from red/yellow/green totals.`);
   }
 
-  kpis.innerHTML = [
-    {k:'Vehicles w/ FOV Issues', v: totalVehicles.toLocaleString()},
-    {k:'FOV Events (Misaligned + Sensor Covered)', v: totalEvents.toLocaleString()},
-    {k:'Proximity Red (>24h — high risk)', v: nRed.toLocaleString()},
-    {k:'Proximity Yellow (≤24h)', v: nYellow.toLocaleString()},
-    {k:'Proximity Green (≤1h — low risk)', v: nGreen.toLocaleString()},
-    {k:'Proximity N/A (no prior verified fatigue)', v: nNA.toLocaleString()},
-    {k:'Median Exposure', v: (medExposure == null ? 'N/A' : formatHMS(medExposure))},
-    {k:'% Exposure > 24h', v: `${pctExposureOver24}%`},
-    {k:'Likely Fixed (Last verified fatigue after latest FOV)', v: fixedLikely.toLocaleString()}
-  ].map(x => `<div class="kpi"><div class="k">${esc(x.k)}</div><div class="v">${esc(x.v)}</div></div>`).join('');
+  const kpiHTML = (k, v) => `<div class="kpi"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`;
+  const row1 = [
+    kpiHTML('Vehicles w/ Misaligned', nMisaligned.toLocaleString()),
+    kpiHTML('Median time from valid alert → camera misaligned', medMisGap == null ? 'N/A' : formatHMS(medMisGap)),
+    kpiHTML('Median Exposure — Camera Misaligned', medMisExp == null ? 'N/A' : formatHMS(medMisExp))
+  ].join('');
+  const row2 = [
+    kpiHTML('Vehicles w/ Sensor Covered', nSensorCovered.toLocaleString()),
+    kpiHTML('Median time from valid alert → sensor covered', medSensorGap == null ? 'N/A' : formatHMS(medSensorGap)),
+    kpiHTML('Median Exposure — Sensor Covered', medSensorExp == null ? 'N/A' : formatHMS(medSensorExp))
+  ].join('');
+  const row3 = [
+    kpiHTML('Proximity Red (>5h — high risk)', nRed.toLocaleString()),
+    kpiHTML('Proximity Yellow (1–5h)', nYellow.toLocaleString()),
+    kpiHTML('Proximity Green (<1h — low risk)', nGreen.toLocaleString()),
+    kpiHTML('Vehicles w/ NA (No Prior Verified)', nNA.toLocaleString())
+  ].join('');
+  const row4 = [
+    kpiHTML('% Exposure > 24h', `${pctExposureOver24}%`),
+    kpiHTML('Likely Fixed (Last verified fatigue after latest FOV)', fixedLikely.toLocaleString())
+  ].join('');
+  kpis.innerHTML =
+    `<div class="kpi-row">${row1}</div>` +
+    `<div class="kpi-row">${row2}</div>` +
+    `<div class="kpi-row">${row3}</div>` +
+    `<div class="kpi-row">${row4}</div>`;
 
-  const gapFilter = document.getElementById('fov-gap-filter')?.value || 'all';
   let rows = rowsAll;
-  if(gapFilter !== 'all') rows = rowsAll.filter(r => r.gap_bucket === gapFilter);
+  if(selectedGapBuckets.size < 4) rows = rowsAll.filter(r => selectedGapBuckets.has(r.gap_bucket));
 
   if(!rows.length){
     nodata.style.display = 'block';
@@ -2667,6 +2748,8 @@ function renderFovTab(eventsGlobal){
       return (best == null || r.last_verified_ms > best) ? r.last_verified_ms : best;
     }, null);
     const anyFixed = vrows.some(r=>r.last_verified_after_latest_fov);
+    const totalGapSecs = vrows.reduce((s,r)=>s+(Number.isFinite(r.gap_seconds)?r.gap_seconds:0),0);
+    const totalExpSecs = vrows.reduce((s,r)=>s+(Number.isFinite(r.exposure_seconds)?r.exposure_seconds:0),0);
     const worstGap = vrows.reduce((w,r)=>worstBucket(w,r.gap_bucket),'na');
     const worstExp = vrows.reduce((w,r)=>worstBucket(w,r.exposure_bucket),'na');
     const firstFovMs = vrows.reduce((mn,r)=>r.first_fov_ms!=null?(mn==null||r.first_fov_ms<mn?r.first_fov_ms:mn):mn, null);
@@ -2680,8 +2763,8 @@ function renderFovTab(eventsGlobal){
           : esc(fleetLastVF))
       : 'N/A';
 
-    const fleetProximityHTML = gapChipHTML(worstGap, '');
-    const fleetExposureHTML = gapChipHTML(worstExp, '');
+    const fleetProximityHTML = gapChipHTML(worstGap, formatHMS(totalGapSecs));
+    const fleetExposureHTML = gapChipHTML(worstExp, formatHMS(totalExpSecs));
 
     // Fleet row
     htmlParts.push(`
@@ -2714,20 +2797,25 @@ function renderFovTab(eventsGlobal){
             ? `<span class="cell-green link" data-fovdrill="lastVerified" data-key="${esc(key)}">${esc(lastVF)}</span>`
             : `<span class="link" data-fovdrill="lastVerified" data-key="${esc(key)}">${esc(lastVF)}</span>`);
 
-      const firstFov = (r.first_fov_ms != null) ? fmtDateTime(r.first_fov_ms) : 'N/A';
-      const latestFov = (r.latest_fov_ms != null) ? fmtDateTime(r.latest_fov_ms) : 'N/A';
-
       const vfBeforeCell = (r.verified_before > 0)
         ? `<span class="link num" data-fovdrill="vfBefore" data-key="${esc(key)}">${(r.verified_before||0).toLocaleString()}</span>`
         : `<span class="num">0</span>`;
 
-      const firstFovCell = (r.first_fov_ms != null)
-        ? `<span class="link" data-fovdrill="firstFov" data-key="${esc(key)}">${esc(firstFov)}</span>`
-        : `N/A`;
+      // First FOV: separate links per type
+      const firstFovParts = [];
+      if(r.firstMisEvent.length > 0)
+        firstFovParts.push(`<span class="link fov-type-link" data-fovdrill="firstMis" data-key="${esc(key)}">📷 ${esc(fmtDateTime(r.firstMisEvent[0].dt_ms))} <span class="fov-type-label">(misaligned)</span></span>`);
+      if(r.firstSensorEvent.length > 0)
+        firstFovParts.push(`<span class="link fov-type-link" data-fovdrill="firstSensor" data-key="${esc(key)}">🔲 ${esc(fmtDateTime(r.firstSensorEvent[0].dt_ms))} <span class="fov-type-label">(sensor covered)</span></span>`);
+      const firstFovCell = firstFovParts.length ? firstFovParts.join('') : 'N/A';
 
-      const latestFovCell = (r.latest_fov_ms != null)
-        ? `<span class="link" data-fovdrill="latestFov" data-key="${esc(key)}">${esc(latestFov)}</span>`
-        : `N/A`;
+      // Latest FOV: separate links per type
+      const latestFovParts = [];
+      if(r.latestMisEvent.length > 0)
+        latestFovParts.push(`<span class="link fov-type-link" data-fovdrill="latestMis" data-key="${esc(key)}">📷 ${esc(fmtDateTime(r.latestMisEvent[0].dt_ms))} <span class="fov-type-label">(misaligned)</span></span>`);
+      if(r.latestSensorEvent.length > 0)
+        latestFovParts.push(`<span class="link fov-type-link" data-fovdrill="latestSensor" data-key="${esc(key)}">🔲 ${esc(fmtDateTime(r.latestSensorEvent[0].dt_ms))} <span class="fov-type-label">(sensor covered)</span></span>`);
+      const latestFovCell = latestFovParts.length ? latestFovParts.join('') : 'N/A';
 
       htmlParts.push(`
         <tr class="asset-row${isExpanded?' visible':''}" data-fov-fleet="${esc(fleetName)}">
@@ -2794,15 +2882,25 @@ document.addEventListener('click', (e) => {
     rows = row.lastVerifiedEvent || [];
     dl = `${row.fleet}_${row.vehicle}_last_verified_fatigue.csv`.replace(/\s+/g,'_');
   }
-  if(kind === 'firstFov'){
-    title = `FOV Evidence — First FOV (Misaligned) — ${row.fleet} / ${row.vehicle}`;
-    rows = row.firstFovEvent || [];
-    dl = `${row.fleet}_${row.vehicle}_first_fov_misaligned.csv`.replace(/\s+/g,'_');
+  if(kind === 'firstMis'){
+    title = `FOV Evidence — First FOV (FOV exception - camera misaligned) — ${row.fleet} / ${row.vehicle}`;
+    rows = row.firstMisEvent || [];
+    dl = `${row.fleet}_${row.vehicle}_first_fov_camera_misaligned.csv`.replace(/\s+/g,'_');
   }
-  if(kind === 'latestFov'){
-    title = `FOV Evidence — Latest FOV (Misaligned) — ${row.fleet} / ${row.vehicle}`;
-    rows = row.latestFovEvent || [];
-    dl = `${row.fleet}_${row.vehicle}_latest_fov_misaligned.csv`.replace(/\s+/g,'_');
+  if(kind === 'latestMis'){
+    title = `FOV Evidence — Latest FOV (FOV exception - camera misaligned) — ${row.fleet} / ${row.vehicle}`;
+    rows = row.latestMisEvent || [];
+    dl = `${row.fleet}_${row.vehicle}_latest_fov_camera_misaligned.csv`.replace(/\s+/g,'_');
+  }
+  if(kind === 'firstSensor'){
+    title = `FOV Evidence — First FOV (FOV exception - sensor covered) — ${row.fleet} / ${row.vehicle}`;
+    rows = row.firstSensorEvent || [];
+    dl = `${row.fleet}_${row.vehicle}_first_fov_sensor_covered.csv`.replace(/\s+/g,'_');
+  }
+  if(kind === 'latestSensor'){
+    title = `FOV Evidence — Latest FOV (FOV exception - sensor covered) — ${row.fleet} / ${row.vehicle}`;
+    rows = row.latestSensorEvent || [];
+    dl = `${row.fleet}_${row.vehicle}_latest_fov_sensor_covered.csv`.replace(/\s+/g,'_');
   }
 
   openEvidenceModal(title, sub, rows, dl);
@@ -3780,7 +3878,7 @@ function debounce(fn, ms=180){
 }
 const rerenderDebounced = debounce(() => { renderAll(); schedulePersist(); }, 120);
 
-['vehicle','ds','de','fov-gap-filter','int-cap-text'].forEach(id => {
+['vehicle','ds','de','int-cap-text'].forEach(id => {
   const el = document.getElementById(id);
   if(!el) return;
   el.addEventListener('input', () => {
@@ -3897,6 +3995,21 @@ document.querySelectorAll('.ft').forEach(cb => {
   });
 });
 
+// Proximity gap multi-select checkboxes
+document.querySelectorAll('.gb').forEach(cb => {
+  cb.addEventListener('change', () => {
+    const key = cb.getAttribute('data-gb');
+    if(cb.checked) selectedGapBuckets.add(key);
+    else selectedGapBuckets.delete(key);
+    // If nothing is checked, re-check all
+    if(selectedGapBuckets.size === 0){
+      document.querySelectorAll('.gb').forEach(c => { c.checked = true; selectedGapBuckets.add(c.getAttribute('data-gb')); });
+    }
+    renderAll();
+    schedulePersist();
+  });
+});
+
 // Zone checkbox listeners
 document.querySelectorAll('.zone-checkbox').forEach(cb => {
   cb.addEventListener('change', () => {
@@ -3939,7 +4052,6 @@ document.getElementById('reset-filters').addEventListener('click', () => {
   document.querySelectorAll('.zone-checkbox').forEach(cb => {
     cb.checked = (cb.dataset.zone === 'all');
   });
-  document.getElementById('fov-gap-filter').value = 'all';
   document.getElementById('int-cap-text').value = '10';
   document.getElementById('kpi-include-fov').checked = false;
 
@@ -3960,6 +4072,9 @@ document.getElementById('reset-filters').addEventListener('click', () => {
   fovTypesManuallyChanged = false;
   selectedFovTypes = new Set(['misaligned', 'sensor_covered']);
 
+  // gap buckets
+  selectedGapBuckets = new Set(['red','yellow','green','na']);
+
   // expansion + sorts
   expandedFleets = new Set();
   expandedFovFleets = new Set();
@@ -3971,6 +4086,7 @@ document.getElementById('reset-filters').addEventListener('click', () => {
   refreshWeeksPanel();
   refreshClassificationPanel();
   refreshFovTypePanel();
+  refreshGapPanel();
   refreshEmailsPanel();
   applyAutoDateRange();
   renderAll();
@@ -4009,6 +4125,7 @@ document.getElementById('clear-data').addEventListener('click', async () => {
   refreshWeeksPanel();
   refreshClassificationPanel();
   refreshFovTypePanel();
+  refreshGapPanel();
   refreshEmailsPanel();
   renderAll();
 });
@@ -4045,6 +4162,7 @@ document.getElementById('csv-upload').addEventListener('change', async (e) => {
     refreshWeeksPanel();
     refreshClassificationPanel();
     refreshFovTypePanel();
+    refreshGapPanel();
     refreshEmailsPanel();
     applyAutoDateRange();
 
@@ -4076,6 +4194,7 @@ document.getElementById('csv-upload').addEventListener('change', async (e) => {
   refreshWeeksPanel();
   refreshClassificationPanel();
   refreshFovTypePanel();
+  refreshGapPanel();
   refreshEmailsPanel();
 
   // If weeks were restored and dates are blank, auto-range
