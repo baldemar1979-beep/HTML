@@ -150,6 +150,8 @@
 
     .cell-green { background:#e6f7e6; border-radius:10px; padding:6px 10px; display:inline-block; }
     .subnote { font-size:12px; color:#7f8c8d; margin-top:6px; line-height:1.35; }
+    .fov-type-link { display:block; font-size:12px; }
+    .fov-type-label { color:#7f8c8d; }
 
     /* KPI grid */
     .kpi-grid { display:flex; flex-wrap:wrap; gap:10px; }
@@ -2564,9 +2566,9 @@ function buildFovMisalignedRows(eventsGlobal){
   
   // Log validation results
   console.log(`[buildFovMisalignedRows] Gap bucket validation for ${rows.length} rows:`);
-  console.log(`  - Red (>5h): ${bucketCounts.red}`);
-  console.log(`  - Yellow (1-5h): ${bucketCounts.yellow}`);
-  console.log(`  - Green (<1h): ${bucketCounts.green}`);
+  console.log(`  - Red (>5h — high risk): ${bucketCounts.red}`);
+  console.log(`  - Yellow (1–5h): ${bucketCounts.yellow}`);
+  console.log(`  - Green (<1h — low risk): ${bucketCounts.green}`);
   console.log(`  - NA (no prior verified): ${bucketCounts.na}`);
   console.log(`  - Invalid: ${bucketCounts.invalid}`);
   
@@ -2665,9 +2667,14 @@ function renderFovTab(eventsGlobal){
 
   const fixedLikely = rowsAll.filter(r => r.last_verified_after_latest_fov).length;
 
-  // Median gap for misaligned-only and sensor-covered-only (exclude N/A)
-  const misGapSecs = rowsAll.filter(r => r.hasMisaligned && r.gap_bucket !== 'na').map(r => r.gap_seconds).filter(Number.isFinite);
-  const sensorGapSecs = rowsAll.filter(r => r.hasSensorCovered && r.gap_bucket !== 'na').map(r => r.gap_seconds).filter(Number.isFinite);
+  // Median gap for misaligned-only and sensor-covered-only (exclude N/A), single pass
+  const misGapSecs = [];
+  const sensorGapSecs = [];
+  for(const r of rowsAll){
+    if(r.gap_bucket === 'na' || !Number.isFinite(r.gap_seconds)) continue;
+    if(r.hasMisaligned) misGapSecs.push(r.gap_seconds);
+    if(r.hasSensorCovered) sensorGapSecs.push(r.gap_seconds);
+  }
   const medMisGap = median(misGapSecs);
   const medSensorGap = median(sensorGapSecs);
   
@@ -2777,17 +2784,17 @@ function renderFovTab(eventsGlobal){
       // First FOV: separate links per type
       const firstFovParts = [];
       if(r.firstMisEvent.length > 0)
-        firstFovParts.push(`<span class="link" data-fovdrill="firstMis" data-key="${esc(key)}" style="display:block;font-size:12px;">📷 ${esc(fmtDateTime(r.firstMisEvent[0].dt_ms))} <span style="color:#7f8c8d">(misaligned)</span></span>`);
+        firstFovParts.push(`<span class="link fov-type-link" data-fovdrill="firstMis" data-key="${esc(key)}">📷 ${esc(fmtDateTime(r.firstMisEvent[0].dt_ms))} <span class="fov-type-label">(misaligned)</span></span>`);
       if(r.firstSensorEvent.length > 0)
-        firstFovParts.push(`<span class="link" data-fovdrill="firstSensor" data-key="${esc(key)}" style="display:block;font-size:12px;">🔲 ${esc(fmtDateTime(r.firstSensorEvent[0].dt_ms))} <span style="color:#7f8c8d">(sensor covered)</span></span>`);
+        firstFovParts.push(`<span class="link fov-type-link" data-fovdrill="firstSensor" data-key="${esc(key)}">🔲 ${esc(fmtDateTime(r.firstSensorEvent[0].dt_ms))} <span class="fov-type-label">(sensor covered)</span></span>`);
       const firstFovCell = firstFovParts.length ? firstFovParts.join('') : 'N/A';
 
       // Latest FOV: separate links per type
       const latestFovParts = [];
       if(r.latestMisEvent.length > 0)
-        latestFovParts.push(`<span class="link" data-fovdrill="latestMis" data-key="${esc(key)}" style="display:block;font-size:12px;">📷 ${esc(fmtDateTime(r.latestMisEvent[0].dt_ms))} <span style="color:#7f8c8d">(misaligned)</span></span>`);
+        latestFovParts.push(`<span class="link fov-type-link" data-fovdrill="latestMis" data-key="${esc(key)}">📷 ${esc(fmtDateTime(r.latestMisEvent[0].dt_ms))} <span class="fov-type-label">(misaligned)</span></span>`);
       if(r.latestSensorEvent.length > 0)
-        latestFovParts.push(`<span class="link" data-fovdrill="latestSensor" data-key="${esc(key)}" style="display:block;font-size:12px;">🔲 ${esc(fmtDateTime(r.latestSensorEvent[0].dt_ms))} <span style="color:#7f8c8d">(sensor covered)</span></span>`);
+        latestFovParts.push(`<span class="link fov-type-link" data-fovdrill="latestSensor" data-key="${esc(key)}">🔲 ${esc(fmtDateTime(r.latestSensorEvent[0].dt_ms))} <span class="fov-type-label">(sensor covered)</span></span>`);
       const latestFovCell = latestFovParts.length ? latestFovParts.join('') : 'N/A';
 
       htmlParts.push(`
