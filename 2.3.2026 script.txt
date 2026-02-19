@@ -155,6 +155,7 @@
 
     /* KPI grid */
     .kpi-grid { display:flex; flex-wrap:wrap; gap:10px; }
+    .kpi-row { display:flex; flex-wrap:wrap; gap:10px; width:100%; }
     .kpi { flex: 1 1 180px; background:#fafafa; border:1px solid #eee; border-radius:14px; padding:10px 12px; min-width: 220px; }
     .kpi .k { font-size:11px; color:#7f8c8d; text-transform:uppercase; letter-spacing:0.5px; }
     .kpi .v { font-size:18px; font-weight:1000; color:#2c3e50; margin-top:6px; }
@@ -2651,7 +2652,7 @@ function renderFovTab(eventsGlobal){
     }
   });
 
-  const totalVehicles = rowsAll.length;
+  const nMisaligned = rowsAll.filter(r => r.hasMisaligned).length;
   const nSensorCovered = rowsAll.filter(r => r.hasSensorCovered).length;
 
   const nRed = rowsAll.filter(r => r.gap_bucket === 'red').length;
@@ -2659,43 +2660,62 @@ function renderFovTab(eventsGlobal){
   const nGreen = rowsAll.filter(r => r.gap_bucket === 'green').length;
   const nNA = rowsAll.filter(r => r.gap_bucket === 'na').length;
 
-  const exposureSecs = rowsAll.map(r => r.exposure_seconds).filter(Number.isFinite);
-  const medExposure = median(exposureSecs);
-  const pctExposureOver24 = exposureSecs.length
-    ? Math.round((exposureSecs.filter(x => x > 86400).length / exposureSecs.length) * 100)
-    : 0;
+  const pctExposureOver24 = (() => {
+    const secs = rowsAll.map(r => r.exposure_seconds).filter(Number.isFinite);
+    return secs.length ? Math.round((secs.filter(x => x > 86400).length / secs.length) * 100) : 0;
+  })();
 
   const fixedLikely = rowsAll.filter(r => r.last_verified_after_latest_fov).length;
 
-  // Median gap for misaligned-only and sensor-covered-only (exclude N/A), single pass
-  const misGapSecs = [];
-  const sensorGapSecs = [];
+  // Median gap and exposure per type (exclude N/A gap rows), single pass
+  const misGapSecs = [], sensorGapSecs = [], misExpSecs = [], sensorExpSecs = [];
   for(const r of rowsAll){
-    if(r.gap_bucket === 'na' || !Number.isFinite(r.gap_seconds)) continue;
-    if(r.hasMisaligned) misGapSecs.push(r.gap_seconds);
-    if(r.hasSensorCovered) sensorGapSecs.push(r.gap_seconds);
+    const hasGap = r.gap_bucket !== 'na' && Number.isFinite(r.gap_seconds);
+    if(r.hasMisaligned){
+      if(hasGap) misGapSecs.push(r.gap_seconds);
+      if(Number.isFinite(r.exposure_seconds)) misExpSecs.push(r.exposure_seconds);
+    }
+    if(r.hasSensorCovered){
+      if(hasGap) sensorGapSecs.push(r.gap_seconds);
+      if(Number.isFinite(r.exposure_seconds)) sensorExpSecs.push(r.exposure_seconds);
+    }
   }
   const medMisGap = median(misGapSecs);
   const medSensorGap = median(sensorGapSecs);
+  const medMisExp = median(misExpSecs);
+  const medSensorExp = median(sensorExpSecs);
   
   // Highlight N/A rows before rendering
   if (nNA > 0) {
     console.warn(`Warning: ${nNA} rows are unclassified (N/A). These are currently excluded from red/yellow/green totals.`);
   }
 
-  kpis.innerHTML = [
-    {k:'Vehicles w/ FOV Issues', v: totalVehicles.toLocaleString()},
-    {k:'Vehicles w/ Sensor Covered', v: nSensorCovered.toLocaleString()},
-    {k:'Proximity Red (>5h — high risk)', v: nRed.toLocaleString()},
-    {k:'Proximity Yellow (1–5h)', v: nYellow.toLocaleString()},
-    {k:'Proximity Green (<1h — low risk)', v: nGreen.toLocaleString()},
-    {k:'Vehicles w/ NA (No Prior Verified)', v: nNA.toLocaleString()},
-    {k:'Median Exposure', v: (medExposure == null ? 'N/A' : formatHMS(medExposure))},
-    {k:'% Exposure > 24h', v: `${pctExposureOver24}%`},
-    {k:'Median time from valid alert → camera misaligned', v: (medMisGap == null ? 'N/A' : formatHMS(medMisGap))},
-    {k:'Median time from valid alert → sensor covered', v: (medSensorGap == null ? 'N/A' : formatHMS(medSensorGap))},
-    {k:'Likely Fixed (Last verified fatigue after latest FOV)', v: fixedLikely.toLocaleString()}
-  ].map(x => `<div class="kpi"><div class="k">${esc(x.k)}</div><div class="v">${esc(x.v)}</div></div>`).join('');
+  const kpiHTML = (k, v) => `<div class="kpi"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`;
+  const row1 = [
+    kpiHTML('Vehicles w/ Misaligned', nMisaligned.toLocaleString()),
+    kpiHTML('Median time from valid alert → camera misaligned', medMisGap == null ? 'N/A' : formatHMS(medMisGap)),
+    kpiHTML('Median Exposure — Camera Misaligned', medMisExp == null ? 'N/A' : formatHMS(medMisExp))
+  ].join('');
+  const row2 = [
+    kpiHTML('Vehicles w/ Sensor Covered', nSensorCovered.toLocaleString()),
+    kpiHTML('Median time from valid alert → sensor covered', medSensorGap == null ? 'N/A' : formatHMS(medSensorGap)),
+    kpiHTML('Median Exposure — Sensor Covered', medSensorExp == null ? 'N/A' : formatHMS(medSensorExp))
+  ].join('');
+  const row3 = [
+    kpiHTML('Proximity Red (>5h — high risk)', nRed.toLocaleString()),
+    kpiHTML('Proximity Yellow (1–5h)', nYellow.toLocaleString()),
+    kpiHTML('Proximity Green (<1h — low risk)', nGreen.toLocaleString()),
+    kpiHTML('Vehicles w/ NA (No Prior Verified)', nNA.toLocaleString())
+  ].join('');
+  const row4 = [
+    kpiHTML('% Exposure > 24h', `${pctExposureOver24}%`),
+    kpiHTML('Likely Fixed (Last verified fatigue after latest FOV)', fixedLikely.toLocaleString())
+  ].join('');
+  kpis.innerHTML =
+    `<div class="kpi-row">${row1}</div>` +
+    `<div class="kpi-row">${row2}</div>` +
+    `<div class="kpi-row">${row3}</div>` +
+    `<div class="kpi-row">${row4}</div>`;
 
   let rows = rowsAll;
   if(selectedGapBuckets.size < 4) rows = rowsAll.filter(r => selectedGapBuckets.has(r.gap_bucket));
