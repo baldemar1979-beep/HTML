@@ -2351,8 +2351,16 @@ document.addEventListener('click', (e) => {
 /* =======================================================================================
    SECTION: FOV tab
 ======================================================================================= */
-function buildFovMisalignedRows(eventsGlobal){
-  const misEvents = eventsGlobal.filter(e => getFovEventType(e) !== null && Number.isFinite(e.dt_ms));
+function buildFovMisalignedRows(eventsGlobal, fovTypeFilter = 'all'){
+  // Filter FOV events based on type filter
+  const misEvents = eventsGlobal.filter(e => {
+    if (!Number.isFinite(e.dt_ms)) return false;
+    const type = getFovEventType(e);
+    if (fovTypeFilter === 'all') return type !== null;
+    if (fovTypeFilter === 'misaligned') return type === 'misaligned';
+    if (fovTypeFilter === 'sensor_covered') return type === 'sensor_covered';
+    return false;
+  });
 
   const group = new Map();
   for(const e of misEvents){
@@ -2537,7 +2545,7 @@ function renderFovTab(eventsGlobal){
     return;
   }
 
-  // Filter events by FOV type
+  // Get FOV type filter
   const fovTypeFilter = document.getElementById('fov-type-filter')?.value || 'all';
 
   // Update column header based on filter
@@ -2552,15 +2560,8 @@ function renderFovTab(eventsGlobal){
     }
   }
 
-  const filteredEvents = eventsGlobal.filter(e => {
-    const type = getFovEventType(e);
-    if (fovTypeFilter === 'all') return type !== null;
-    if (fovTypeFilter === 'misaligned') return type === 'misaligned';
-    if (fovTypeFilter === 'sensor_covered') return type === 'sensor_covered';
-    return false;
-  });
-
-  const rowsAll = buildFovMisalignedRows(filteredEvents);
+  // Pass all events to buildFovMisalignedRows, it will filter internally based on fovTypeFilter
+  const rowsAll = buildFovMisalignedRows(eventsGlobal, fovTypeFilter);
   
   // Debug rowsAll generation
   console.log("[buildFovMisalignedRows] Total rows processed:", rowsAll.length);
