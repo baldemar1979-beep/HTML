@@ -843,6 +843,8 @@
         </div>
         <div class="subnote" style="margin-bottom:10px;">
           Risk score (0-100): Precision (0-50 pts) + FOV Rate (0-30 pts) + Valid Alert Trend (0-20 pts). Higher score = more urgent coaching needed.
+          <br/>
+          <strong>Note:</strong> FOV Rate is calculated as FOV events ÷ Valid Alerts × 100 (focuses on coachable events only).
         </div>
 
         <!-- Risk Level Filters -->
@@ -1071,9 +1073,9 @@
           <ol style="padding-left:18px; margin-top:6px;">
             <li><strong>Step 1 — Understand Risk Scoring:</strong> Each fleet receives a composite risk score:
               <ul style="padding-left:18px; margin-top:4px;">
-                <li>Precision score: 0–50 pts (lower precision = higher score)</li>
-                <li>FOV Rate score: 0–30 pts</li>
-                <li>Valid Alert Trend score: 0–20 pts</li>
+                <li>Precision score: 0–50 pts (lower precision = higher score; measures % of events that are valid fatigue alerts)</li>
+                <li>FOV Rate score: 0–30 pts (higher FOV rate = higher score; measures FOV exceptions as % of valid alerts)</li>
+                <li>Valid Alert Trend score: 0–20 pts (worsening trend = higher score; measures change in valid alerts vs previous period)</li>
               </ul>
             </li>
             <li><strong>Step 2 — Toggle Aggregation Mode:</strong> Switch between <em>All Weeks</em> and <em>Latest Week</em> to adjust scoring context.</li>
@@ -5070,7 +5072,7 @@ function computeCoachingRiskScores(fleetData, weeks, aggregateMode){
       let lastWkM  = f.weekMap.get(lastWeek);
       for(const m of f.weekMap.values()){ totalValid+=m.valid; totalAll+=m.total; totalFov+=m.fov; }
       prec = precisionExFov(totalValid, totalAll, totalFov);
-      fovRate = totalAll>0 ? (totalFov/totalAll*100) : 0;
+      fovRate = totalValid>0 ? (totalFov/totalValid*100) : 0;  // FOV as % of valid alerts
       if(firstWkM && lastWkM && firstWkM.valid > 0){
         trendPct = ((lastWkM.valid - firstWkM.valid) / firstWkM.valid) * 100;
       } else {
@@ -5081,7 +5083,7 @@ function computeCoachingRiskScores(fleetData, weeks, aggregateMode){
       const currM = f.weekMap.get(lastWeek);
       const prevM = prevWeek ? f.weekMap.get(prevWeek) : null;
       prec = currM ? precisionExFov(currM.valid, currM.total, currM.fov) : null;
-      fovRate = currM && currM.total>0 ? (currM.fov/currM.total*100) : 0;
+      fovRate = currM && currM.valid>0 ? (currM.fov/currM.valid*100) : 0;  // FOV as % of valid alerts
       if(currM && prevM && prevM.valid > 0){
         trendPct = ((currM.valid - prevM.valid) / prevM.valid) * 100;
       } else {
@@ -5368,17 +5370,32 @@ function openCoachingDrillModal(fleet, weeks){
     html += `<div class="coaching-drill-section">
       <h4>🔍 Key Issues Breakdown</h4>
       <div style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
-        <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#f8f9fa; border-radius:8px;">
-          <span>Precision: <strong>${precLabel}</strong> (${r.precScore} pts)</span>
-          <span style="color:${r.precScore>=40?'#e74c3c':r.precScore>=20?'#f39c12':'#27ae60'}; font-weight:950;">${precSeverity}</span>
+        <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#f8f9fa; border-radius:8px; flex-direction:column;">
+          <div style="display:flex; justify-content:space-between;">
+            <span>Precision: <strong>${precLabel}</strong> (${r.precScore} pts)</span>
+            <span style="color:${r.precScore>=40?'#e74c3c':r.precScore>=20?'#f39c12':'#27ae60'}; font-weight:950;">${precSeverity}</span>
+          </div>
+          <div style="margin-left:20px; font-size:12px; color:#7f8c8d; margin-top:3px;">
+            → ${r.currPrec!==null?`${r.currPrec.toFixed(1)}%`:'N/A'} of events (excluding FOV) are valid fatigue alerts
+          </div>
         </div>
-        <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#f8f9fa; border-radius:8px;">
-          <span>FOV Rate: <strong>${r.fovRate.toFixed(1)}%</strong> (${r.fovScore} pts)</span>
-          <span style="color:${r.fovScore>=25?'#e74c3c':r.fovScore>=15?'#f39c12':'#27ae60'}; font-weight:950;">${r.fovScore>=25?'— HIGH':r.fovScore>=15?'— ELEVATED':'— OK'}</span>
+        <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#f8f9fa; border-radius:8px; flex-direction:column;">
+          <div style="display:flex; justify-content:space-between;">
+            <span>FOV Rate: <strong>${r.fovRate.toFixed(1)}%</strong> (${r.fovScore} pts)</span>
+            <span style="color:${r.fovScore>=25?'#e74c3c':r.fovScore>=15?'#f39c12':'#27ae60'}; font-weight:950;">${r.fovScore>=25?'— HIGH':r.fovScore>=15?'— ELEVATED':'— OK'}</span>
+          </div>
+          <div style="margin-left:20px; font-size:12px; color:#7f8c8d; margin-top:3px;">
+            → ${r.fovRate.toFixed(1)}% of valid alerts are FOV exceptions (camera/sensor issues)
+          </div>
         </div>
-        <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#f8f9fa; border-radius:8px;">
-          <span>Alert Trend: <strong>${r.trendPct !== null ? (r.trendPct>0?'+':'')+r.trendPct.toFixed(1)+'%' : 'N/A'}</strong> (${r.trendScore} pts)</span>
-          <span style="color:${r.trendScore>=15?'#e74c3c':r.trendScore>=10?'#f39c12':'#27ae60'}; font-weight:950;">${r.trendScore>=15?'— WORSENING':r.trendScore>=5?'— SLIGHT INCREASE':'— STABLE/IMPROVING'}</span>
+        <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#f8f9fa; border-radius:8px; flex-direction:column;">
+          <div style="display:flex; justify-content:space-between;">
+            <span>Alert Trend: <strong>${r.trendPct !== null ? (r.trendPct>0?'+':'')+r.trendPct.toFixed(1)+'%' : 'N/A'}</strong> (${r.trendScore} pts)</span>
+            <span style="color:${r.trendScore>=15?'#e74c3c':r.trendScore>=10?'#f39c12':'#27ae60'}; font-weight:950;">${r.trendScore>=15?'— WORSENING':r.trendScore>=5?'— SLIGHT INCREASE':'— STABLE/IMPROVING'}</span>
+          </div>
+          <div style="margin-left:20px; font-size:12px; color:#7f8c8d; margin-top:3px;">
+            → Valid fatigue alerts ${r.trendPct!==null?(r.trendPct>0?'increased':r.trendPct<0?'decreased':'remained stable'):'changed'} ${r.trendPct!==null?`${Math.abs(r.trendPct).toFixed(1)}%`:'N/A'} vs previous period
+          </div>
         </div>
         <div style="padding:6px 10px; background:#eef2f5; border-radius:8px; font-weight:950;">
           Total Risk Score: ${r.riskScore} / 100 → ${_riskLevelDisplay(r.riskLevel)}
