@@ -202,6 +202,7 @@
     .coaching-actions { display:flex; gap:4px; flex-wrap:wrap; }
     .coaching-call-card { background:#fff; border:1px solid #ffcccc; border-radius:12px; padding:12px 14px; margin-bottom:10px; }
     .coaching-call-card ul { margin:8px 0 0; padding-left:18px; font-size:13px; color:#34495e; line-height:1.6; }
+    .coaching-table-wrap { max-height:450px; overflow-y:auto; }
 
     /* ===== Enhanced Coaching Tab ===== */
     .coaching-risk-urgent { background:#ffe5e5; color:#7b241c; }
@@ -854,7 +855,7 @@
           <label class="coaching-filter-label"><input type="checkbox" class="coaching-risk-cb" data-level="GOOD" checked> ✅ GOOD</label>
         </div>
 
-        <div class="table-wrap">
+        <div class="table-wrap coaching-table-wrap">
           <table>
             <thead id="coaching-risk-thead">
               <tr>
@@ -878,7 +879,7 @@
       <div class="card" id="coaching-persistent-rz-card" style="margin-bottom:14px; display:none;">
         <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">🚨 Persistent Red Zone Fleets (&lt;25% Precision)</h3>
         <div id="coaching-persistent-rz-info" style="font-size:13px; color:#7f8c8d; margin-bottom:10px;"></div>
-        <div class="table-wrap">
+        <div class="table-wrap coaching-table-wrap">
           <table>
             <thead>
               <tr>
@@ -887,8 +888,6 @@
                 <th class="num">Weeks Below 25%</th>
                 <th class="num">Current Prec</th>
                 <th class="num">Avg Prec</th>
-                <th class="num">Risk Score</th>
-                <th>Escalation Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -904,7 +903,7 @@
         <div class="card" style="flex:1; min-width:380px; background:#fff5f5; border-left:4px solid #e74c3c; margin-bottom:0;">
           <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">🔴 Persistent Red Zone Fleets (&lt;50% Precision)</h3>
           <div style="color:#34495e; font-size:13px; margin-bottom:10px;">Fleets consistently below 50% precision (2+ consecutive weeks).</div>
-          <div class="table-wrap">
+          <div class="table-wrap coaching-table-wrap">
             <table>
               <thead><tr>
                 <th>Fleet</th>
@@ -921,7 +920,7 @@
         <div class="card" style="flex:1; min-width:380px; background:#fff9e6; border-left:4px solid #f39c12; margin-bottom:0;">
           <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">🟡 Persistent Yellow Zone Fleets</h3>
           <div style="color:#34495e; font-size:13px; margin-bottom:10px;">Fleets consistently in 50–59.9% precision range (2+ consecutive weeks).</div>
-          <div class="table-wrap">
+          <div class="table-wrap coaching-table-wrap">
             <table>
               <thead><tr>
                 <th>Fleet</th>
@@ -941,7 +940,7 @@
       <div class="card" style="margin-bottom:14px;">
         <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">📷 FOV Repeat Offenders</h3>
         <div style="color:#34495e; font-size:13px; margin-bottom:10px;">Vehicles with FOV issues across 2+ selected weeks — potential hardware or process problems.</div>
-        <div class="table-wrap">
+        <div class="table-wrap coaching-table-wrap">
           <table>
             <thead><tr>
               <th>Fleet</th>
@@ -971,7 +970,7 @@
       <div class="card" style="margin-bottom:14px; background:#f0fff4; border-left:4px solid #27ae60;">
         <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">🏆 Success Stories</h3>
         <div style="color:#34495e; font-size:13px; margin-bottom:10px;">Fleets showing the biggest precision improvements (top 10, previous vs current week).</div>
-        <div class="table-wrap">
+        <div class="table-wrap coaching-table-wrap">
           <table>
             <thead><tr>
               <th>Fleet</th>
@@ -990,7 +989,7 @@
       <div class="card" style="margin-bottom:14px;">
         <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">📐 Comparative Benchmarking</h3>
         <div style="color:#34495e; font-size:13px; margin-bottom:10px;">Fleet performance vs. network average and 60% target. Percentile rank among all active fleets.</div>
-        <div class="table-wrap">
+        <div class="table-wrap coaching-table-wrap">
           <table>
             <thead id="coaching-bench-thead">
               <tr>
@@ -4203,8 +4202,12 @@ function _coachingLogBtn(fleet, week){
 function _coachingDrillBtn(fleet){
   return `<button class="btn coaching-drill-btn" data-fleet="${esc(fleet)}" style="font-size:11px;padding:4px 8px;">🔍 Drill</button>`;
 }
+function _coachingNavBtns(fleet){
+  return `<button class="btn coaching-nav-btn" data-nav-tab="fleetTab" data-nav-fleet="${esc(fleet)}" style="font-size:11px;padding:4px 8px;" title="View precision in Fleet Management">📊 Fleet</button>` +
+         `<button class="btn coaching-nav-btn" data-nav-tab="fovTab" style="font-size:11px;padding:4px 8px;" title="View FOV data">📷 FOV</button>`;
+}
 function _coachingActionBtns(fleet, week){
-  return `<div class="coaching-actions">${_coachingLogBtn(fleet,week)}${_coachingDrillBtn(fleet)}</div>`;
+  return `<div class="coaching-actions">${_coachingLogBtn(fleet,week)}${_coachingDrillBtn(fleet)}${_coachingNavBtns(fleet)}</div>`;
 }
 function _coachingTrendArrow(delta){
   if(delta === null) return '<span style="color:#7f8c8d;">—</span>';
@@ -4323,6 +4326,16 @@ document.addEventListener('click', (e)=>{
   const drillBtn = e.target.closest('.coaching-drill-btn');
   if(drillBtn){
     coachingDrillFleet(drillBtn.getAttribute('data-fleet'));
+    return;
+  }
+  const navBtn = e.target.closest('.coaching-nav-btn');
+  if(navBtn){
+    const tab   = navBtn.getAttribute('data-nav-tab');
+    const fleet = navBtn.getAttribute('data-nav-fleet');
+    if(fleet){ document.getElementById('fleet').value = fleet; }
+    setActiveTab(tab);
+    refreshVehicleDropdown();
+    renderAll();
     return;
   }
 });
@@ -5055,12 +5068,6 @@ function _renderPersistentRedZoneAlert(riskResults, weeks){
       for(const w of weeks){ const m=f.weekMap.get(w); if(m){ tot+=precisionExFov(m.valid,m.total,m.fov); n++; } }
       return n>0?tot/n:null;
     })();
-    // Escalation logic
-    const improving = f.delta !== null && f.delta > 0;
-    let escalStatus, escalClass;
-    if(f.weeksBelowThreshold >= 5 && !improving){ escalStatus='[ESCALATE]'; escalClass='chip-red'; }
-    else if(f.weeksBelowThreshold >= 3 && improving){ escalStatus='[MONITOR]'; escalClass='chip-yellow'; }
-    else { escalStatus='[COACH]'; escalClass='chip-na'; }
 
     return `<tr>
       <td><strong>${esc(f.fleet)}</strong></td>
@@ -5068,8 +5075,6 @@ function _renderPersistentRedZoneAlert(riskResults, weeks){
       <td class="num"><span class="chip chip-red">${f.weeksBelowThreshold}/${weeksAnalyzed} (${pctBelow}%)</span></td>
       <td class="num">${f.currPrec!==null?`<span class="prec-cell prec-bad">${f.currPrec.toFixed(1)}%</span>`:'N/A'}</td>
       <td class="num">${avgPrec!==null?`${avgPrec.toFixed(1)}%`:'N/A'}</td>
-      <td class="num"><strong>${f.riskScore}</strong></td>
-      <td><span class="chip ${escalClass}">${escalStatus}</span></td>
       <td>${_coachingActionBtns(f.fleet, latestWeek)}</td>
     </tr>`;
   }).join('');
@@ -5114,6 +5119,7 @@ function _renderCoachingRiskMatrix(riskResults, latestWeek){
     const actionBtns = `<div class="coaching-actions">
       <button class="btn coaching-log-btn" data-fleet="${esc(r.fleet)}" data-week="${esc(latestWeek)}" data-entry-id="" style="font-size:11px;padding:4px 8px;">${logBtnLabel}</button>
       <button class="btn coaching-risk-drill-btn" data-fleet="${esc(r.fleet)}" style="font-size:11px;padding:4px 8px;">🔍 Drill</button>
+      ${_coachingNavBtns(r.fleet)}
     </div>`;
     return `<tr class="${_riskRowClass(r.riskLevel)}">
       <td><strong>${esc(r.fleet)}</strong></td>
