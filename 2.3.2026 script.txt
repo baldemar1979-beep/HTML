@@ -1115,8 +1115,8 @@
     </div>
 
     <!-- Enhanced Coaching Action Modal -->
-    <div class="modal-backdrop" id="coaching-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="coaching-modal-title">
-      <div class="modal" style="width:min(640px,98vw); max-height:90vh;">
+    <div class="modal-backdrop" id="coaching-modal-backdrop">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="coaching-modal-title" style="width:min(640px,98vw); max-height:90vh;">
         <div class="modal-header">
           <div>
             <div class="modal-title" id="coaching-modal-title">Log Coaching Action</div>
@@ -1190,8 +1190,8 @@
     </div>
 
     <!-- Coaching Drill Modal -->
-    <div class="modal-backdrop" id="coaching-drill-backdrop" role="dialog" aria-modal="true" aria-labelledby="coaching-drill-title">
-      <div class="modal" style="width:min(900px,98vw); max-height:92vh;">
+    <div class="modal-backdrop" id="coaching-drill-backdrop">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="coaching-drill-title" style="width:min(900px,98vw); max-height:92vh;">
         <div class="modal-header">
           <div>
             <div class="modal-title" id="coaching-drill-title">Fleet Deep Dive</div>
@@ -5152,7 +5152,7 @@ function openCoachingDrillModal(fleet, weeks){
       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; padding:8px 0;">`;
     for(let i=0;i<weeks.length;i++){
       const p = weekPrecs[i];
-      const ht = p !== null ? Math.max(4, Math.round((p/100)*100)) : 4;
+      const ht = p !== null ? Math.max(4, Math.round(p)) : 4;
       const cls = p === null ? '#eee' : p < 25 ? '#e74c3c' : p < 50 ? '#e67e22' : p < 60 ? '#f1c40f' : '#27ae60';
       html += `<div style="text-align:center; flex:1; min-width:40px;">
         <div style="font-size:11px; color:#7f8c8d; margin-bottom:2px;">${p !== null ? p.toFixed(1)+'%' : 'N/A'}</div>
@@ -5328,7 +5328,7 @@ function _parseCSVLine(line){
   let cur = '', inQ = false;
   for(let i=0;i<line.length;i++){
     const c = line[i];
-    if(c==='"'){ if(inQ && line[i+1]==='"'){ cur+='"'; i++; } else inQ=!inQ; }
+    if(c==='"'){ if(inQ && i+1 < line.length && line[i+1]==='"'){ cur+='"'; i++; } else inQ=!inQ; }
     else if(c===',' && !inQ){ result.push(cur); cur=''; }
     else cur+=c;
   }
@@ -5443,9 +5443,12 @@ document.getElementById('coaching-drill-close')?.addEventListener('click', close
 document.getElementById('coaching-drill-backdrop')?.addEventListener('click', (e) => {
   if(e.target.id === 'coaching-drill-backdrop') closeCoachingDrillModal();
 });
-// Escape key to close drill modal
+// Escape key to close drill modal (only if it's visible)
 document.addEventListener('keydown', (e) => {
-  if(e.key === 'Escape') closeCoachingDrillModal();
+  if(e.key === 'Escape'){
+    const bd = document.getElementById('coaching-drill-backdrop');
+    if(bd && bd.style.display === 'flex') closeCoachingDrillModal();
+  }
 });
 
 // Export buttons
