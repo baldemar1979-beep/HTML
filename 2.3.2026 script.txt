@@ -897,114 +897,24 @@
         <div id="coaching-persistent-rz-nodata" class="no-data" style="display:none;">No fleets in persistent red zone</div>
       </div>
 
-      <!-- Legacy sections kept for compatibility -->
-      <!-- Section: Persistent Problem Fleets (existing) -->
-      <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:14px;">
-        <div class="card" style="flex:1; min-width:380px; background:#fff5f5; border-left:4px solid #e74c3c; margin-bottom:0;">
-          <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">🔴 Persistent Red Zone Fleets (&lt;50% Precision)</h3>
-          <div style="color:#34495e; font-size:13px; margin-bottom:10px;">Fleets consistently below 50% precision (2+ consecutive weeks).</div>
-          <div class="table-wrap coaching-table-wrap">
-            <table>
-              <thead><tr>
-                <th>Fleet</th>
-                <th class="num">Precision</th>
-                <th class="num">Weeks in Red</th>
-                <th>Trend</th>
-                <th>Actions</th>
-              </tr></thead>
-              <tbody id="coaching-red-tbody"></tbody>
-            </table>
-          </div>
-          <div id="coaching-red-nodata" class="no-data">No fleets in persistent red zone</div>
-        </div>
-        <div class="card" style="flex:1; min-width:380px; background:#fff9e6; border-left:4px solid #f39c12; margin-bottom:0;">
-          <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">🟡 Persistent Yellow Zone Fleets</h3>
-          <div style="color:#34495e; font-size:13px; margin-bottom:10px;">Fleets consistently in 50–59.9% precision range (2+ consecutive weeks).</div>
-          <div class="table-wrap coaching-table-wrap">
-            <table>
-              <thead><tr>
-                <th>Fleet</th>
-                <th class="num">Precision</th>
-                <th class="num">Weeks in Yellow</th>
-                <th>Trend</th>
-                <th>Actions</th>
-              </tr></thead>
-              <tbody id="coaching-yellow-tbody"></tbody>
-            </table>
-          </div>
-          <div id="coaching-yellow-nodata" class="no-data">No fleets in persistent yellow zone</div>
-        </div>
-      </div>
-
-      <!-- Section: FOV Repeat Offenders -->
+      <!-- Section: FOV Repeat Offenders (collapsible fleet view) -->
       <div class="card" style="margin-bottom:14px;">
         <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">📷 FOV Repeat Offenders</h3>
-        <div style="color:#34495e; font-size:13px; margin-bottom:10px;">Vehicles with FOV issues across 2+ selected weeks — potential hardware or process problems.</div>
+        <div style="color:#34495e; font-size:13px; margin-bottom:10px;">Fleets with FOV issues across 2+ selected weeks. Click a fleet row to expand vehicle detail. Click event counts to view evidence.</div>
         <div class="table-wrap coaching-table-wrap">
-          <table>
+          <table id="coaching-fov-table">
             <thead><tr>
               <th>Fleet</th>
-              <th>Vehicle</th>
-              <th>Issue Type</th>
-              <th class="num">Weeks Affected</th>
-              <th>Last Occurrence</th>
+              <th class="num">📷 Misaligned</th>
+              <th class="num">🔲 Sensor Covered</th>
+              <th class="num">Total Weeks</th>
+              <th>Trend</th>
               <th>Actions</th>
             </tr></thead>
             <tbody id="coaching-fov-tbody"></tbody>
           </table>
         </div>
         <div id="coaching-fov-nodata" class="no-data">No FOV repeat offenders in selected period</div>
-      </div>
-
-      <!-- Section: Ready for Coaching Call -->
-      <div class="card" style="margin-bottom:14px; background:#fff3e0; border-left:4px solid #ff9800;">
-        <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">📞 Ready for Coaching Call</h3>
-        <div style="color:#34495e; font-size:13px; margin-bottom:10px;">
-          Fleets flagged for immediate attention: declined ≥10% WoW, 3+ consecutive weeks in Red zone, or 3+ weeks with FOV issues.
-        </div>
-        <div id="coaching-calllist"></div>
-        <div id="coaching-calllist-nodata" class="no-data">No fleets currently flagged for immediate coaching</div>
-      </div>
-
-      <!-- Section: Success Stories -->
-      <div class="card" style="margin-bottom:14px; background:#f0fff4; border-left:4px solid #27ae60;">
-        <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">🏆 Success Stories</h3>
-        <div style="color:#34495e; font-size:13px; margin-bottom:10px;">Fleets showing the biggest precision improvements (top 10, previous vs current week).</div>
-        <div class="table-wrap coaching-table-wrap">
-          <table>
-            <thead><tr>
-              <th>Fleet</th>
-              <th class="num">Previous Precision</th>
-              <th class="num">Current Precision</th>
-              <th class="num">Improvement</th>
-              <th>Zone Change</th>
-            </tr></thead>
-            <tbody id="coaching-success-tbody"></tbody>
-          </table>
-        </div>
-        <div id="coaching-success-nodata" class="no-data">No improvements found (need 2+ weeks of data)</div>
-      </div>
-
-      <!-- Section: Comparative Benchmarking -->
-      <div class="card" style="margin-bottom:14px;">
-        <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">📐 Comparative Benchmarking</h3>
-        <div style="color:#34495e; font-size:13px; margin-bottom:10px;">Fleet performance vs. network average and 60% target. Percentile rank among all active fleets.</div>
-        <div class="table-wrap coaching-table-wrap">
-          <table>
-            <thead id="coaching-bench-thead">
-              <tr>
-                <th class="sortable" data-cbench="fleet">Fleet</th>
-                <th class="num sortable" data-cbench="currPrec">Precision</th>
-                <th class="num sortable" data-cbench="vsAvg">vs Network Avg</th>
-                <th class="num sortable" data-cbench="gapToTarget">Gap to Target (60%)</th>
-                <th class="num sortable" data-cbench="percentile">Percentile Rank</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="coaching-bench-tbody"></tbody>
-          </table>
-        </div>
-        <div id="coaching-bench-nodata" class="no-data">Upload CSV(s) to view benchmarking</div>
       </div>
 
       <!-- Section: Coaching Action Log -->
@@ -1281,6 +1191,7 @@ function uiSnapshot(){
     classesManuallyChanged,
     expandedFleets: Array.from(expandedFleets),
     expandedFovFleets: Array.from(expandedFovFleets),
+    expandedCoachingFovFleets: Array.from(expandedCoachingFovFleets),
 
     emailBuckets: Array.from(selectedEmailBuckets),
     emailsManuallyChanged,
@@ -1357,6 +1268,7 @@ function applyUiSnapshot(s){
   if(typeof s.classesManuallyChanged === 'boolean') classesManuallyChanged = s.classesManuallyChanged;
   if(Array.isArray(s.expandedFleets)) expandedFleets = new Set(s.expandedFleets);
   if(Array.isArray(s.expandedFovFleets)) expandedFovFleets = new Set(s.expandedFovFleets);
+  if(Array.isArray(s.expandedCoachingFovFleets)) expandedCoachingFovFleets = new Set(s.expandedCoachingFovFleets);
 
   if(Array.isArray(s.emailBuckets)) selectedEmailBuckets = new Set(s.emailBuckets);
   if(typeof s.emailsManuallyChanged === 'boolean') emailsManuallyChanged = s.emailsManuallyChanged;
@@ -1456,6 +1368,7 @@ let trendsAggregateMode = 'all';
 
 let expandedFleets = new Set();
 let expandedFovFleets = new Set();
+let expandedCoachingFovFleets = new Set();
 
 let sortState = { col:null, dir:'asc' }; // fleet tab sort
 let fovSort = { col:'events_count', dir:'desc' };
@@ -4204,7 +4117,9 @@ function _coachingDrillBtn(fleet){
 }
 function _coachingNavBtns(fleet){
   return `<button class="btn coaching-nav-btn" data-nav-tab="fleetTab" data-nav-fleet="${esc(fleet)}" style="font-size:11px;padding:4px 8px;" title="View precision in Fleet Management">📊 Fleet</button>` +
-         `<button class="btn coaching-nav-btn" data-nav-tab="fovTab" style="font-size:11px;padding:4px 8px;" title="View FOV data">📷 FOV</button>`;
+         `<button class="btn coaching-nav-btn" data-nav-tab="fovTab" style="font-size:11px;padding:4px 8px;" title="View FOV data">📷 FOV</button>` +
+         `<button class="btn coaching-nav-btn" data-nav-tab="trendsTab" data-nav-fleet="${esc(fleet)}" style="font-size:11px;padding:4px 8px;" title="View trends">📈 Trends</button>` +
+         `<button class="btn coaching-nav-btn" data-nav-tab="interventionsTab" data-nav-fleet="${esc(fleet)}" style="font-size:11px;padding:4px 8px;" title="View interventions">⚠️ Intv</button>`;
 }
 function _coachingActionBtns(fleet, week){
   return `<div class="coaching-actions">${_coachingLogBtn(fleet,week)}${_coachingDrillBtn(fleet)}${_coachingNavBtns(fleet)}</div>`;
@@ -4338,6 +4253,40 @@ document.addEventListener('click', (e)=>{
     renderAll();
     return;
   }
+  // FOV fleet row expand/collapse
+  const fovFleetRow = e.target.closest('.coaching-fov-fleet-row');
+  if(fovFleetRow && !e.target.closest('button') && !e.target.closest('.coaching-fov-count-btn')){
+    toggleCoachingFovFleet(fovFleetRow.getAttribute('data-fov-fleet'));
+    return;
+  }
+  // FOV count click → open evidence modal
+  const fovCountBtn = e.target.closest('.coaching-fov-count-btn');
+  if(fovCountBtn){
+    const fleet = fovCountBtn.getAttribute('data-fleet');
+    const type  = fovCountBtn.getAttribute('data-type'); // 'mis' or 'sen'
+    const evts  = currentNetworkFilteredEvents.filter(ev =>
+      ev.fleet === fleet && isFovMisaligned(ev) &&
+      selectedWeeks.has(ev.fileWeek) &&
+      (type === 'mis' ? eventFovTypeKey(ev) === FOV_TYPE_MISALIGNED : eventFovTypeKey(ev) === FOV_TYPE_SENSOR)
+    );
+    const typeName = type === 'mis' ? 'Camera Misaligned' : 'Sensor Covered';
+    openEvidenceModal(`FOV — ${typeName}`, `Fleet: ${fleet}`, evts, `fov_${fleet}_${type}.csv`.replace(/[^a-zA-Z0-9_.-]/g,'_'));
+    return;
+  }
+  // FOV vehicle CSV download
+  const fovCsvBtn = e.target.closest('.coaching-fov-csv-btn');
+  if(fovCsvBtn){
+    const fleet   = fovCsvBtn.getAttribute('data-fleet');
+    const vehicle = fovCsvBtn.getAttribute('data-vehicle');
+    const evts    = currentNetworkFilteredEvents.filter(ev =>
+      ev.fleet === fleet && ev.vehicle === vehicle && isFovMisaligned(ev) && selectedWeeks.has(ev.fileWeek)
+    );
+    _downloadCSV([
+      ['Week','Date','Detection Time','Event ID','Fleet','Vehicle','Classification','Event Type','Confirmation','Lat','Lon','Software Version'],
+      ...evts.map(ev => [ev.fileWeek||'',ev.dateISO||'',ev.dt_raw||fmtDateTime(ev.dt_ms),ev.event_id||'',ev.fleet||'',ev.vehicle||'',ev.classification||'',ev.event_type||'',ev.confirmation||'',ev.latitude??'',ev.longitude??'',ev.software_version||''])
+    ], `fov_${fleet}_${vehicle}.csv`.replace(/[^a-zA-Z0-9_.-]/g,'_'));
+    return;
+  }
 });
 
 /* Coaching priority matrix sort */
@@ -4355,25 +4304,6 @@ document.addEventListener('click', (e)=>{
   clearSortClasses('#coaching-priority-thead th[data-cprio]');
   setSortClass(th, coachingPrioSort.dir);
   _renderCoachingPriorityMatrix(currentCoachingData, Array.from(selectedWeeks).sort().pop() || '');
-  schedulePersist();
-});
-
-/* Coaching benchmarking sort */
-document.addEventListener('click', (e)=>{
-  const th = e.target.closest('#coaching-bench-thead th[data-cbench]');
-  if(!th) return;
-  const col = th.getAttribute('data-cbench');
-  if(!col) return;
-  if(coachingBenchSort.col === col){
-    coachingBenchSort.dir = (coachingBenchSort.dir === 'asc') ? 'desc' : 'asc';
-  } else {
-    coachingBenchSort.col = col;
-    coachingBenchSort.dir = (col === 'fleet') ? 'asc' : 'asc';
-  }
-  clearSortClasses('#coaching-bench-thead th[data-cbench]');
-  setSortClass(th, coachingBenchSort.dir);
-  const latestWeek = Array.from(selectedWeeks).sort().pop() || '';
-  _renderCoachingBenchmarking(currentCoachingData, _coachingNetworkAvg(currentCoachingData, latestWeek), latestWeek);
   schedulePersist();
 });
 
@@ -4472,174 +4402,139 @@ function _renderCoachingProblemFleets(fleetData, latestWeek){
   }
 }
 
-function _renderCoachingFovRepeatOffenders(fovVehicleMap){
+function _buildCoachingFovFleetData(eventsGlobal, weeks){
+  // Group events by fleet → vehicle → week → type
+  const fleetMap = new Map(); // fleetName → { vehicles: Map(veh→{misWkMap, senWkMap, events}), allWeeks: Set }
+  for(const e of eventsGlobal){
+    if(!isFovMisaligned(e)) continue;
+    const week = e.fileWeek;
+    if(!selectedWeeks.has(week)) continue;
+    const fleet = e.fleet; if(!fleet) continue;
+    const vehicle = e.vehicle || 'Unknown';
+    if(!fleetMap.has(fleet)) fleetMap.set(fleet, { vehicles: new Map(), allWeeks: new Set() });
+    const fd = fleetMap.get(fleet);
+    fd.allWeeks.add(week);
+    if(!fd.vehicles.has(vehicle)) fd.vehicles.set(vehicle, { misWkMap: new Map(), senWkMap: new Map(), events: [] });
+    const vd = fd.vehicles.get(vehicle);
+    const tk = eventFovTypeKey(e);
+    if(tk === FOV_TYPE_MISALIGNED){
+      vd.misWkMap.set(week, (vd.misWkMap.get(week)||0) + 1);
+    } else {
+      vd.senWkMap.set(week, (vd.senWkMap.get(week)||0) + 1);
+    }
+    vd.events.push(e);
+  }
+
+  // Build fleet-level summary objects, filter to 2+ weeks
+  const result = [];
+  for(const [fleet, fd] of fleetMap.entries()){
+    if(fd.allWeeks.size < 2) continue;
+    let totalMis = 0, totalSen = 0;
+    for(const vd of fd.vehicles.values()){
+      for(const c of vd.misWkMap.values()) totalMis += c;
+      for(const c of vd.senWkMap.values()) totalSen += c;
+    }
+    // Trend: compare first half vs second half of selected weeks (by event totals)
+    const sortedWks = weeks.filter(w => fd.allWeeks.has(w));
+    const mid = Math.ceil(sortedWks.length / 2);
+    const firstHalf = sortedWks.slice(0, mid);
+    const secondHalf = sortedWks.slice(mid);
+    let firstTotal = 0, secondTotal = 0;
+    for(const vd of fd.vehicles.values()){
+      for(const w of firstHalf){ firstTotal += (vd.misWkMap.get(w)||0) + (vd.senWkMap.get(w)||0); }
+      for(const w of secondHalf){ secondTotal += (vd.misWkMap.get(w)||0) + (vd.senWkMap.get(w)||0); }
+    }
+    let trend = 'stable';
+    if(firstHalf.length > 0 && secondHalf.length > 0){
+      const avgFirst = firstTotal / firstHalf.length;
+      const avgSecond = secondTotal / secondHalf.length;
+      if(avgFirst > 0){
+        const changePct = ((avgSecond - avgFirst) / avgFirst) * 100;
+        if(changePct > 10) trend = 'worsening';
+        else if(changePct < -10) trend = 'improving';
+      }
+    }
+    result.push({ fleet, totalMis, totalSen, totalWeeks: fd.allWeeks.size, trend, vehicles: fd.vehicles });
+  }
+  result.sort((a,b) => (b.totalMis+b.totalSen) - (a.totalMis+a.totalSen) || a.fleet.localeCompare(b.fleet));
+  return result;
+}
+
+function _coachingFovTrendChip(trend){
+  if(trend === 'worsening') return '<span class="chip chip-red">↑ Worsening</span>';
+  if(trend === 'improving') return '<span class="chip chip-green">↓ Improving</span>';
+  return '<span class="chip chip-na">→ Stable</span>';
+}
+
+function _renderCoachingFovRepeatOffenders(eventsGlobal, weeks){
   const tbody = document.getElementById('coaching-fov-tbody');
   const nodata = document.getElementById('coaching-fov-nodata');
   if(!tbody) return;
 
-  const repeaters = Array.from(fovVehicleMap.values())
-    .filter(v=>v.weeks.size>=2)
-    .sort((a,b)=>b.weeks.size-a.weeks.size||a.fleet.localeCompare(b.fleet));
+  const latestWeek = weeks.length ? weeks[weeks.length-1] : '';
+  const fleetData = _buildCoachingFovFleetData(eventsGlobal, weeks);
 
-  if(!repeaters.length){
+  if(!fleetData.length){
     tbody.innerHTML = '';
     if(nodata){ nodata.style.display='block'; nodata.textContent='No FOV repeat offenders in selected period (need 2+ weeks with FOV issues)'; }
     return;
   }
   if(nodata) nodata.style.display='none';
 
-  tbody.innerHTML = repeaters.map(v=>{
-    const issueTypes = [];
-    if(v.misWeeks.size>0) issueTypes.push(`📷 Misaligned (${v.misWeeks.size}w)`);
-    if(v.sensorWeeks.size>0) issueTypes.push(`🔲 Sensor Covered (${v.sensorWeeks.size}w)`);
-    return `<tr>
-      <td>${esc(v.fleet)}</td>
-      <td>${esc(v.vehicle)}</td>
-      <td>${issueTypes.join(', ')}</td>
-      <td class="num"><span class="chip chip-red">${v.weeks.size} wk${v.weeks.size!==1?'s':''}</span></td>
-      <td>${v.latestMs?esc(fmtDateTime(v.latestMs)):'N/A'}</td>
-      <td>${_coachingLogBtn(v.fleet,'')}</td>
-    </tr>`;
-  }).join('');
-}
-
-function _renderCoachingReadyForCall(fleetData, latestWeek, fovVehicleMap){
-  const container = document.getElementById('coaching-calllist');
-  const nodata = document.getElementById('coaching-calllist-nodata');
-  if(!container) return;
-
-  const urgent = new Map(); // fleet -> { reasons, data }
-  for(const f of fleetData){
-    if(f.delta!==null && f.delta<=-10){
-      if(!urgent.has(f.fleet)) urgent.set(f.fleet,{reasons:[],data:f});
-      urgent.get(f.fleet).reasons.push(`📉 Declined ${f.delta.toFixed(1)}% last 2 weeks`);
+  const rows = [];
+  for(const fd of fleetData){
+    const isExpanded = expandedCoachingFovFleets.has(fd.fleet);
+    const expandIcon = `<span class="expand${isExpanded?' on':''}">▶</span>`;
+    const misTot = fd.totalMis > 0
+      ? `<span class="link coaching-fov-count-btn" data-fleet="${esc(fd.fleet)}" data-type="mis" style="font-weight:bold;">${fd.totalMis}</span>`
+      : '—';
+    const senTot = fd.totalSen > 0
+      ? `<span class="link coaching-fov-count-btn" data-fleet="${esc(fd.fleet)}" data-type="sen" style="font-weight:bold;">${fd.totalSen}</span>`
+      : '—';
+    // Fleet row
+    rows.push(`<tr class="fleet-row coaching-fov-fleet-row" data-fov-fleet="${esc(fd.fleet)}" style="cursor:pointer;">
+      <td><span style="display:flex;align-items:center;gap:8px;">${expandIcon}<strong>${esc(fd.fleet)}</strong></span></td>
+      <td class="num">${misTot}</td>
+      <td class="num">${senTot}</td>
+      <td class="num"><span class="chip chip-red">${fd.totalWeeks} wk${fd.totalWeeks!==1?'s':''}</span></td>
+      <td>${_coachingFovTrendChip(fd.trend)}</td>
+      <td>${_coachingActionBtns(fd.fleet, latestWeek)}</td>
+    </tr>`);
+    // Vehicle rows
+    for(const [vehicle, vd] of fd.vehicles.entries()){
+      const allWks = new Set([...vd.misWkMap.keys(), ...vd.senWkMap.keys()]);
+      if(allWks.size < 2) continue; // only show vehicles with 2+ weeks
+      const wksMis = weeks.map(w => vd.misWkMap.has(w) ? `${w.replace(/^\d{4}-/,'')}: ${vd.misWkMap.get(w)}` : null).filter(Boolean).join('<br>');
+      const wksSen = weeks.map(w => vd.senWkMap.has(w) ? `${w.replace(/^\d{4}-/,'')}: ${vd.senWkMap.get(w)}` : null).filter(Boolean).join('<br>');
+      // CSV download for this vehicle
+      const csvBtn = `<button class="btn coaching-fov-csv-btn" data-fleet="${esc(fd.fleet)}" data-vehicle="${esc(vehicle)}" style="font-size:11px;padding:3px 7px;" title="Download evidence CSV for this vehicle">📄 CSV</button>`;
+      rows.push(`<tr class="asset-row coaching-fov-vehicle-row${isExpanded?' visible':''}" data-fov-fleet="${esc(fd.fleet)}">
+        <td style="padding-left:40px;color:#7f8c8d;">└─ ${esc(vehicle)}</td>
+        <td class="num" style="font-size:12px;line-height:1.6;">${wksMis||'—'}</td>
+        <td class="num" style="font-size:12px;line-height:1.6;">${wksSen||'—'}</td>
+        <td></td>
+        <td></td>
+        <td>${csvBtn}</td>
+      </tr>`);
     }
   }
-  for(const f of fleetData){
-    if(f.weeksInRed>=3){
-      if(!urgent.has(f.fleet)) urgent.set(f.fleet,{reasons:[],data:f});
-      urgent.get(f.fleet).reasons.push(`🔴 ${f.weeksInRed} consecutive weeks in Red zone`);
-    }
-  }
-  for(const [,v] of fovVehicleMap.entries()){
-    if(v.weeks.size>=3){
-      const fl = v.fleet;
-      if(!urgent.has(fl)) urgent.set(fl,{reasons:[],data:fleetData.find(f=>f.fleet===fl)||null});
-      urgent.get(fl).reasons.push(`📷 Vehicle ${esc(v.vehicle)}: FOV issues in ${v.weeks.size} weeks`);
-    }
-  }
-
-  if(!urgent.size){
-    container.innerHTML = '';
-    if(nodata) nodata.style.display='block';
-    return;
-  }
-  if(nodata) nodata.style.display='none';
-
-  container.innerHTML = Array.from(urgent.entries()).map(([fleet,info])=>{
-    const f = info.data;
-    const precSpan = (f && f.currPrec!==null)
-      ? `<span class="prec-cell ${precisionClass(f.currPrec)}" style="font-size:13px;">${f.currPrec.toFixed(1)}%</span>`
-      : '';
-    return `<div class="coaching-call-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
-        <div><strong style="font-size:15px;">${esc(fleet)}</strong>${precSpan?`<span style="margin-left:8px;">${precSpan}</span>`:''}</div>
-        <div>${_coachingActionBtns(fleet, latestWeek)}</div>
-      </div>
-      <ul>${info.reasons.map(r=>`<li>${r}</li>`).join('')}</ul>
-    </div>`;
-  }).join('');
+  tbody.innerHTML = rows.join('');
 }
 
-function _renderCoachingSuccessStories(fleetData){
-  const tbody = document.getElementById('coaching-success-tbody');
-  const nodata = document.getElementById('coaching-success-nodata');
-  if(!tbody) return;
-
-  const successes = fleetData
-    .filter(f=>f.delta!==null && f.delta>0 && f.currPrec!==null && f.prevPrec!==null)
-    .sort((a,b)=>b.delta-a.delta)
-    .slice(0,10);
-
-  if(!successes.length){
-    tbody.innerHTML = '';
-    if(nodata){ nodata.style.display='block'; nodata.textContent='No improvements found (need 2+ weeks of data)'; }
-    return;
+function toggleCoachingFovFleet(fleetName){
+  if(expandedCoachingFovFleets.has(fleetName)) expandedCoachingFovFleets.delete(fleetName);
+  else expandedCoachingFovFleets.add(fleetName);
+  // Update expand icon
+  const fleetRow = document.querySelector(`#coaching-fov-tbody tr.coaching-fov-fleet-row[data-fov-fleet="${CSS.escape(fleetName)}"]`);
+  if(fleetRow){
+    const icon = fleetRow.querySelector('.expand');
+    if(icon) icon.classList.toggle('on', expandedCoachingFovFleets.has(fleetName));
   }
-  if(nodata) nodata.style.display='none';
-
-  tbody.innerHTML = successes.map(f=>{
-    const prevZone = _coachingZoneName(f.prevPrec);
-    const currZone = _coachingZoneName(f.currPrec);
-    const zoneChange = prevZone!==currZone
-      ? `<span style="color:#27ae60;font-weight:bold;">${prevZone} → ${currZone} ✓</span>`
-      : `<span style="color:#7f8c8d;">${prevZone} → ${currZone}</span>`;
-    return `<tr>
-      <td><strong>${esc(f.fleet)}</strong></td>
-      <td class="num"><span class="prec-cell ${precisionClass(f.prevPrec)}">${f.prevPrec.toFixed(1)}%</span></td>
-      <td class="num"><span class="prec-cell ${precisionClass(f.currPrec)}">${f.currPrec.toFixed(1)}%</span></td>
-      <td class="num"><span class="chip chip-green">+${f.delta.toFixed(1)}%</span></td>
-      <td>${zoneChange}</td>
-    </tr>`;
-  }).join('');
-}
-
-function _renderCoachingBenchmarking(fleetData, networkAvgPrec, latestWeek){
-  const tbody = document.getElementById('coaching-bench-tbody');
-  const nodata = document.getElementById('coaching-bench-nodata');
-  if(!tbody) return;
-
-  const withPrec = fleetData.filter(f=>f.currPrec!==null);
-  if(!withPrec.length){
-    tbody.innerHTML = '';
-    if(nodata){ nodata.style.display='block'; nodata.textContent='No fleet data available'; }
-    return;
-  }
-  if(nodata) nodata.style.display='none';
-
-  const n = withPrec.length;
-  const sortedByPrec = [...withPrec].sort((a,b)=>a.currPrec-b.currPrec);
-  const TARGET = 60;
-
-  // Augment with computed benchmark fields for sorting
-  const augmented = withPrec.map(f=>{
-    const rank = sortedByPrec.findIndex(x=>x.fleet===f.fleet)+1;
-    return { ...f, vsAvg: f.currPrec-networkAvgPrec, gapToTarget: f.currPrec-TARGET, percentile: Math.round((rank/n)*100), rank };
+  // Show/hide vehicle rows
+  document.querySelectorAll(`#coaching-fov-tbody tr.coaching-fov-vehicle-row[data-fov-fleet="${CSS.escape(fleetName)}"]`).forEach(row => {
+    row.classList.toggle('visible', expandedCoachingFovFleets.has(fleetName));
   });
-
-  const col = coachingBenchSort.col;
-  const dir = coachingBenchSort.dir;
-  augmented.sort((a,b)=>{
-    if(col==='fleet') return dir==='asc'?a.fleet.localeCompare(b.fleet):b.fleet.localeCompare(a.fleet);
-    const av = Number(a[col]??0);
-    const bv = Number(b[col]??0);
-    if(av===bv) return a.fleet.localeCompare(b.fleet);
-    return dir==='asc'?(av-bv):(bv-av);
-  });
-
-  tbody.innerHTML = augmented.map(f=>{
-    const vsAvgDisp = f.vsAvg>=0
-      ? `<span class="chip chip-green">+${f.vsAvg.toFixed(1)}%</span>`
-      : `<span class="chip chip-red">${f.vsAvg.toFixed(1)}%</span>`;
-    const gapDisp = f.gapToTarget>=0
-      ? `<span class="chip chip-green">+${f.gapToTarget.toFixed(1)}%</span>`
-      : `<span class="chip chip-red">${f.gapToTarget.toFixed(1)}%</span>`;
-    const pctileDisp = f.percentile<=25
-      ? `<span class="chip chip-red">Bottom quartile (#${f.rank}/${n})</span>`
-      : f.percentile<=50
-      ? `<span class="chip chip-yellow">Below median (#${f.rank}/${n})</span>`
-      : f.percentile<=75
-      ? `<span class="chip chip-green">Above median (#${f.rank}/${n})</span>`
-      : `<span class="chip chip-green">Top quartile (#${f.rank}/${n})</span>`;
-    return `<tr>
-      <td><strong>${esc(f.fleet)}</strong></td>
-      <td class="num"><span class="prec-cell ${precisionClass(f.currPrec)}">${f.currPrec.toFixed(1)}%</span></td>
-      <td class="num">${vsAvgDisp}</td>
-      <td class="num">${gapDisp}</td>
-      <td class="num">${pctileDisp}</td>
-      <td>${_coachingActionBtns(f.fleet, latestWeek)}</td>
-    </tr>`;
-  }).join('');
+  schedulePersist();
 }
 
 function renderCoachingActionLog(){
@@ -4686,13 +4581,12 @@ function renderCoachingTab(eventsGlobal){
   const weeks = Array.from(selectedWeeks).sort();
   const hasData = rawEvents.length > 0 && weeks.length > 0;
 
-  const noDataSections = ['coaching-red-tbody','coaching-yellow-tbody','coaching-fov-tbody','coaching-success-tbody','coaching-bench-tbody','coaching-priority-tbody'];
-  const noDataMsgs = ['coaching-red-nodata','coaching-yellow-nodata','coaching-fov-nodata','coaching-calllist-nodata','coaching-success-nodata','coaching-bench-nodata','coaching-priority-nodata'];
+  const noDataSections = ['coaching-fov-tbody','coaching-priority-tbody'];
+  const noDataMsgs = ['coaching-fov-nodata','coaching-priority-nodata'];
 
   if(!hasData){
     noDataSections.forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=''; });
     noDataMsgs.forEach(id=>{ const el=document.getElementById(id); if(el){ el.style.display='block'; el.textContent='Upload CSV(s) to view data'; } });
-    const cl=document.getElementById('coaching-calllist'); if(cl) cl.innerHTML='';
     renderCoachingActionLog();
     return;
   }
@@ -4717,22 +4611,6 @@ function renderCoachingTab(eventsGlobal){
     if(isFov) m.fov++;
   }
 
-  // Build FOV repeat offenders map
-  const fovVehicleMap = new Map();
-  for(const e of eventsGlobal){
-    if(!isFovMisaligned(e)) continue;
-    const week = e.fileWeek;
-    if(!selectedWeeks.has(week)) continue;
-    const key = `${e.fleet}|${e.vehicle}`;
-    if(!fovVehicleMap.has(key)) fovVehicleMap.set(key,{fleet:e.fleet,vehicle:e.vehicle,weeks:new Set(),misWeeks:new Set(),sensorWeeks:new Set(),latestMs:0});
-    const entry = fovVehicleMap.get(key);
-    entry.weeks.add(week);
-    if(Number.isFinite(e.dt_ms) && e.dt_ms>entry.latestMs) entry.latestMs=e.dt_ms;
-    const tk = eventFovTypeKey(e);
-    if(tk===FOV_TYPE_MISALIGNED) entry.misWeeks.add(week);
-    if(tk===FOV_TYPE_SENSOR) entry.sensorWeeks.add(week);
-  }
-
   // Build per-fleet data array
   const fleetData = [];
   for(const [fleet, weekMap] of fleetWeekMap.entries()){
@@ -4750,17 +4628,6 @@ function renderCoachingTab(eventsGlobal){
       if(precisionExFov(m.valid,m.total,m.fov)<50) weeksInRed++;
       else break;
     }
-    // Consecutive weeks in yellow (only if not currently in red)
-    let weeksInYellow=0;
-    if(weeksInRed===0){
-      for(let i=weeks.length-1;i>=0;i--){
-        const m=weekMap.get(weeks[i]);
-        if(!m) break;
-        const p=precisionExFov(m.valid,m.total,m.fov);
-        if(p>=50 && p<60) weeksInYellow++;
-        else break;
-      }
-    }
     // Weeks without improvement
     let weeksWithoutImprovement=0;
     for(let i=weeks.length-1;i>=1;i--){
@@ -4776,7 +4643,7 @@ function renderCoachingTab(eventsGlobal){
     const fovPct = totalAll>0 ? (totalFov/totalAll*100) : 0;
     const avgEventsPerWeek = totalAll/Math.max(1,weekMap.size);
 
-    fleetData.push({fleet,currPrec,prevPrec,delta,weeksInRed,weeksInYellow,weeksWithoutImprovement,fovPct,avgEventsPerWeek,weekMap,totalAll,priorityScore:0,priorityLevel:'N/A'});
+    fleetData.push({fleet,currPrec,prevPrec,delta,weeksInRed,weeksInYellow:0,weeksWithoutImprovement,fovPct,avgEventsPerWeek,weekMap,totalAll,priorityScore:0,priorityLevel:'N/A'});
   }
 
   // Compute priority scores
@@ -4793,7 +4660,6 @@ function renderCoachingTab(eventsGlobal){
   }
 
   currentCoachingData = fleetData;
-  const networkAvgPrec = _coachingNetworkAvg(fleetData, latestWeek);
 
   // New risk-based dashboard
   const aggregateMode = !!document.getElementById('coaching-aggregate-toggle')?.checked;
@@ -4810,14 +4676,8 @@ function renderCoachingTab(eventsGlobal){
   _renderCoachingSummaryDashboard(riskResults, weeks);
   _renderPersistentRedZoneAlert(riskResults, weeks);
   _renderCoachingRiskMatrix(riskResults, latestWeek);
-
-  // Legacy renders (kept for compatibility)
   _renderCoachingPriorityMatrix(fleetData, latestWeek);
-  _renderCoachingProblemFleets(fleetData, latestWeek);
-  _renderCoachingFovRepeatOffenders(fovVehicleMap);
-  _renderCoachingReadyForCall(fleetData, latestWeek, fovVehicleMap);
-  _renderCoachingSuccessStories(fleetData);
-  _renderCoachingBenchmarking(fleetData, networkAvgPrec, latestWeek);
+  _renderCoachingFovRepeatOffenders(eventsGlobal, weeks);
   renderCoachingActionLog();
 }
 
