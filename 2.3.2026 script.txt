@@ -901,6 +901,12 @@
       <div class="card" style="margin-bottom:14px;">
         <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">📷 FOV Repeat Offenders</h3>
         <div style="color:#34495e; font-size:13px; margin-bottom:10px;">Fleets with FOV issues across 2+ selected weeks. Click a fleet row to expand vehicle detail. Click event counts to view evidence.</div>
+        <div class="coaching-filter-bar" style="margin-bottom:10px;">
+          <label class="coaching-filter-label" title="When checked: trend compares first-half vs second-half of all selected weeks. When unchecked: trend compares most-recent week vs previous week.">
+            <input type="checkbox" id="fov-trend-aggregate-toggle"> 📊 Aggregate Trend (all weeks)
+          </label>
+          <span style="font-size:12px; color:#7f8c8d;" id="fov-trend-mode-label">Mode: Present vs Previous Week</span>
+        </div>
         <div class="table-wrap coaching-table-wrap">
           <table id="coaching-fov-table">
             <thead id="coaching-fov-thead"><tr>
@@ -1232,6 +1238,7 @@ function uiSnapshot(){
     coachingBenchSort,
     coachingPrzSort,
     coachingFovSort,
+    coachingFovTrendAggregate,
     coachingHighOnly: !!document.getElementById('coaching-high-only')?.checked,
     coachingRiskFilters,
     coachingRiskSort,
@@ -1314,6 +1321,11 @@ function applyUiSnapshot(s){
   if(s.coachingBenchSort) coachingBenchSort = s.coachingBenchSort;
   if(s.coachingPrzSort) coachingPrzSort = s.coachingPrzSort;
   if(s.coachingFovSort) coachingFovSort = s.coachingFovSort;
+  if(typeof s.coachingFovTrendAggregate === 'boolean'){
+    coachingFovTrendAggregate = s.coachingFovTrendAggregate;
+    const tog = document.getElementById('fov-trend-aggregate-toggle');
+    if(tog) tog.checked = coachingFovTrendAggregate;
+  }
   if(typeof s.coachingHighOnly === 'boolean'){
     const cb = document.getElementById('coaching-high-only');
     if(cb) cb.checked = s.coachingHighOnly;
@@ -1387,6 +1399,7 @@ let coachingPrioSort = { col:'priorityScore', dir:'desc' };
 let coachingBenchSort = { col:'currPrec', dir:'asc' };
 let coachingPrzSort = { col:'weeksBelow', dir:'desc' };
 let coachingFovSort = { col:'totalMis', dir:'desc' };
+let coachingFovTrendAggregate = false;
 let currentCoachingData = [];
 
 let latestVersionStr = null;
@@ -4406,7 +4419,7 @@ function _renderCoachingProblemFleets(fleetData, latestWeek){
   }
 }
 
-function _buildCoachingFovFleetData(eventsGlobal, weeks){
+function _buildCoachingFovFleetData(eventsGlobal, weeks, aggregateMode){
   // Group events by fleet → vehicle → week → type
   const fleetMap = new Map(); // fleetName → { vehicles: Map(veh→{misWkMap, senWkMap, events}), allWeeks: Set }
   for(const e of eventsGlobal){
@@ -4429,6 +4442,13 @@ function _buildCoachingFovFleetData(eventsGlobal, weeks){
     vd.events.push(e);
   }
 
+  // Helper: sum a wkMap across all vehicles for a given week
+  const fleetWeekSum = (fd, wkMapKey, week) => {
+    let t = 0;
+    for(const vd of fd.vehicles.values()) t += (vd[wkMapKey].get(week)||0);
+    return t;
+  };
+
   // Build fleet-level summary objects, filter to 2+ weeks
   const result = [];
   for(const [fleet, fd] of fleetMap.entries()){
@@ -4438,23 +4458,46 @@ function _buildCoachingFovFleetData(eventsGlobal, weeks){
       for(const c of vd.misWkMap.values()) totalMis += c;
       for(const c of vd.senWkMap.values()) totalSen += c;
     }
-    // Trend: compare most-recent week vs previous week, separately per type
     const sortedWks = weeks.filter(w => fd.allWeeks.has(w));
-    const currWk = sortedWks[sortedWks.length - 1];
-    const prevWk = sortedWks[sortedWks.length - 2]; // may be undefined if only 1 week
-    const _wkTrend = (getVal) => {
-      if(!currWk || !prevWk) return 'stable';
-      const curr = getVal(currWk);
-      const prev = getVal(prevWk);
-      if(prev === 0 && curr === 0) return 'stable';
-      if(prev === 0) return 'worsening'; // appeared from nothing
-      const changePct = ((curr - prev) / prev) * 100;
-      if(changePct > 10)  return 'worsening';
-      if(changePct < -10) return 'improving';
-      return 'stable';
-    };
-    const trendMis = _wkTrend(w => { let t=0; for(const vd of fd.vehicles.values()) t += vd.misWkMap.get(w)||0; return t; });
-    const trendSen = _wkTrend(w => { let t=0; for(const vd of fd.vehicles.values()) t += vd.senWkMap.get(w)||0; return t; });
+
+    let trendMis, trendSen;
+    if(aggregateMode){
+      // Aggregate mode: compare first-half vs second-half of all selected weeks
+      const mid = Math.ceil(sortedWks.length / 2);
+      const firstHalf = sortedWks.slice(0, mid);
+      const secondHalf = sortedWks.slice(mid);
+      const _aggTrend = (wkMapKey) => {
+        if(firstHalf.length === 0 || secondHalf.length === 0) return 'stable';
+        const avgFirst = firstHalf.reduce((s,w) => s + fleetWeekSum(fd, wkMapKey, w), 0) / firstHalf.length;
+        const avgSecond = secondHalf.reduce((s,w) => s + fleetWeekSum(fd, wkMapKey, w), 0) / secondHalf.length;
+        if(avgFirst === 0 && avgSecond === 0) return 'stable';
+        if(avgFirst === 0) return 'worsening';
+        const changePct = ((avgSecond - avgFirst) / avgFirst) * 100;
+        if(changePct > 10)  return 'worsening';
+        if(changePct < -10) return 'improving';
+        return 'stable';
+      };
+      trendMis = _aggTrend('misWkMap');
+      trendSen = _aggTrend('senWkMap');
+    } else {
+      // 2-week mode: compare most-recent week vs previous week
+      const currWk = sortedWks[sortedWks.length - 1];
+      const prevWk = sortedWks[sortedWks.length - 2];
+      const _wkTrend = (wkMapKey) => {
+        if(!currWk || !prevWk) return 'stable';
+        const curr = fleetWeekSum(fd, wkMapKey, currWk);
+        const prev = fleetWeekSum(fd, wkMapKey, prevWk);
+        if(prev === 0 && curr === 0) return 'stable';
+        if(prev === 0) return 'worsening';
+        const changePct = ((curr - prev) / prev) * 100;
+        if(changePct > 10)  return 'worsening';
+        if(changePct < -10) return 'improving';
+        return 'stable';
+      };
+      trendMis = _wkTrend('misWkMap');
+      trendSen = _wkTrend('senWkMap');
+    }
+
     // Combined trend for sort key: worsening > stable > improving
     const trendOrder = { worsening: 2, stable: 1, improving: 0 };
     const trend = trendOrder[trendMis] >= trendOrder[trendSen] ? trendMis : trendSen;
@@ -4481,8 +4524,15 @@ function _renderCoachingFovRepeatOffenders(eventsGlobal, weeks){
   const nodata = document.getElementById('coaching-fov-nodata');
   if(!tbody) return;
 
+  // Read aggregate toggle
+  const aggToggle = document.getElementById('fov-trend-aggregate-toggle');
+  const aggregateMode = aggToggle ? aggToggle.checked : coachingFovTrendAggregate;
+  // Update mode label
+  const modeLabel = document.getElementById('fov-trend-mode-label');
+  if(modeLabel) modeLabel.textContent = aggregateMode ? 'Mode: All Weeks (First Half vs Second Half)' : 'Mode: Present vs Previous Week';
+
   const latestWeek = weeks.length ? weeks[weeks.length-1] : '';
-  const fleetData = _buildCoachingFovFleetData(eventsGlobal, weeks);
+  const fleetData = _buildCoachingFovFleetData(eventsGlobal, weeks, aggregateMode);
 
   if(!fleetData.length){
     tbody.innerHTML = '';
@@ -5356,6 +5406,14 @@ document.addEventListener('click', (e) => {
     coachingFovSort.col = col;
     coachingFovSort.dir = col === 'fleet' ? 'asc' : 'desc';
   }
+  const weeks = Array.from(selectedWeeks).sort();
+  _renderCoachingFovRepeatOffenders(currentNetworkFilteredEvents, weeks);
+  schedulePersist();
+});
+
+// FOV Trend aggregate toggle
+document.getElementById('fov-trend-aggregate-toggle')?.addEventListener('change', (e) => {
+  coachingFovTrendAggregate = e.target.checked;
   const weeks = Array.from(selectedWeeks).sort();
   _renderCoachingFovRepeatOffenders(currentNetworkFilteredEvents, weeks);
   schedulePersist();
