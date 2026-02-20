@@ -4438,36 +4438,42 @@ function _buildCoachingFovFleetData(eventsGlobal, weeks){
       for(const c of vd.misWkMap.values()) totalMis += c;
       for(const c of vd.senWkMap.values()) totalSen += c;
     }
-    // Trend: compare first half vs second half of selected weeks (by event totals)
+    // Trend: compare most-recent week vs previous week, separately per type
     const sortedWks = weeks.filter(w => fd.allWeeks.has(w));
-    const mid = Math.ceil(sortedWks.length / 2);
-    const firstHalf = sortedWks.slice(0, mid);
-    const secondHalf = sortedWks.slice(mid);
-    let firstTotal = 0, secondTotal = 0;
-    for(const vd of fd.vehicles.values()){
-      for(const w of firstHalf){ firstTotal += (vd.misWkMap.get(w)||0) + (vd.senWkMap.get(w)||0); }
-      for(const w of secondHalf){ secondTotal += (vd.misWkMap.get(w)||0) + (vd.senWkMap.get(w)||0); }
-    }
-    let trend = 'stable';
-    if(firstHalf.length > 0 && secondHalf.length > 0){
-      const avgFirst = firstTotal / firstHalf.length;
-      const avgSecond = secondTotal / secondHalf.length;
-      if(avgFirst > 0){
-        const changePct = ((avgSecond - avgFirst) / avgFirst) * 100;
-        if(changePct > 10) trend = 'worsening';
-        else if(changePct < -10) trend = 'improving';
-      }
-    }
-    result.push({ fleet, totalMis, totalSen, totalWeeks: fd.allWeeks.size, trend, vehicles: fd.vehicles });
+    const currWk = sortedWks[sortedWks.length - 1];
+    const prevWk = sortedWks[sortedWks.length - 2]; // may be undefined if only 1 week
+    const _wkTrend = (getVal) => {
+      if(!currWk || !prevWk) return 'stable';
+      const curr = getVal(currWk);
+      const prev = getVal(prevWk);
+      if(prev === 0 && curr === 0) return 'stable';
+      if(prev === 0) return 'worsening'; // appeared from nothing
+      const changePct = ((curr - prev) / prev) * 100;
+      if(changePct > 10)  return 'worsening';
+      if(changePct < -10) return 'improving';
+      return 'stable';
+    };
+    const trendMis = _wkTrend(w => { let t=0; for(const vd of fd.vehicles.values()) t += vd.misWkMap.get(w)||0; return t; });
+    const trendSen = _wkTrend(w => { let t=0; for(const vd of fd.vehicles.values()) t += vd.senWkMap.get(w)||0; return t; });
+    // Combined trend for sort key: worsening > stable > improving
+    const trendOrder = { worsening: 2, stable: 1, improving: 0 };
+    const trend = trendOrder[trendMis] >= trendOrder[trendSen] ? trendMis : trendSen;
+    result.push({ fleet, totalMis, totalSen, totalWeeks: fd.allWeeks.size, trend, trendMis, trendSen, vehicles: fd.vehicles });
   }
   result.sort((a,b) => (b.totalMis+b.totalSen) - (a.totalMis+a.totalSen) || a.fleet.localeCompare(b.fleet));
   return result;
 }
 
-function _coachingFovTrendChip(trend){
-  if(trend === 'worsening') return '<span class="chip chip-red">↓ Worsening</span>';
-  if(trend === 'improving') return '<span class="chip chip-green">↑ Improving</span>';
-  return '<span class="chip chip-na">→ Stable</span>';
+function _coachingFovTrendChip(trendMis, trendSen){
+  const chip = (trend, label) => {
+    if(trend === 'worsening') return `<span class="chip chip-red" title="${label}">↓ ${label}</span>`;
+    if(trend === 'improving') return `<span class="chip chip-green" title="${label}">↑ ${label}</span>`;
+    return `<span class="chip chip-na" title="${label}">→ ${label}</span>`;
+  };
+  const parts = [];
+  if(trendMis !== undefined) parts.push(chip(trendMis, '📷'));
+  if(trendSen !== undefined) parts.push(chip(trendSen, '🔲'));
+  return `<span style="display:flex;gap:4px;flex-wrap:wrap;">${parts.join('')}</span>`;
 }
 
 function _renderCoachingFovRepeatOffenders(eventsGlobal, weeks){
@@ -4520,7 +4526,7 @@ function _renderCoachingFovRepeatOffenders(eventsGlobal, weeks){
       <td class="num">${misTot}</td>
       <td class="num">${senTot}</td>
       <td class="num"><span class="chip chip-red">${fd.totalWeeks} wk${fd.totalWeeks!==1?'s':''}</span></td>
-      <td>${_coachingFovTrendChip(fd.trend)}</td>
+      <td>${_coachingFovTrendChip(fd.trendMis, fd.trendSen)}</td>
       <td><div class="coaching-actions">${fovNavBtn}</div></td>
     </tr>`);
     // Vehicle rows — horizontal week layout, max 6 per line
