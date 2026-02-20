@@ -4449,6 +4449,36 @@ function _buildCoachingFovFleetData(eventsGlobal, weeks, aggregateMode){
     return t;
   };
 
+  // Helper: compute trend for a single wkMap given sorted weeks + mode
+  const calcTrend = (wkMap, sortedWks) => {
+    if(aggregateMode){
+      const mid = Math.ceil(sortedWks.length / 2);
+      const firstHalf = sortedWks.slice(0, mid);
+      const secondHalf = sortedWks.slice(mid);
+      if(firstHalf.length === 0 || secondHalf.length === 0) return 'stable';
+      const avgFirst  = firstHalf.reduce((s,w)  => s + (wkMap.get(w)||0), 0) / firstHalf.length;
+      const avgSecond = secondHalf.reduce((s,w) => s + (wkMap.get(w)||0), 0) / secondHalf.length;
+      if(avgFirst === 0 && avgSecond === 0) return 'stable';
+      if(avgFirst === 0) return 'worsening';
+      const changePct = ((avgSecond - avgFirst) / avgFirst) * 100;
+      if(changePct > 10)  return 'worsening';
+      if(changePct < -10) return 'improving';
+      return 'stable';
+    } else {
+      const currWk = sortedWks[sortedWks.length - 1];
+      const prevWk = sortedWks[sortedWks.length - 2];
+      if(!currWk || !prevWk) return 'stable';
+      const curr = wkMap.get(currWk)||0;
+      const prev = wkMap.get(prevWk)||0;
+      if(prev === 0 && curr === 0) return 'stable';
+      if(prev === 0) return 'worsening';
+      const changePct = ((curr - prev) / prev) * 100;
+      if(changePct > 10)  return 'worsening';
+      if(changePct < -10) return 'improving';
+      return 'stable';
+    }
+  };
+
   // Build fleet-level summary objects, filter to 2+ weeks
   const result = [];
   for(const [fleet, fd] of fleetMap.entries()){
@@ -4462,7 +4492,7 @@ function _buildCoachingFovFleetData(eventsGlobal, weeks, aggregateMode){
 
     let trendMis, trendSen;
     if(aggregateMode){
-      // Aggregate mode: compare first-half vs second-half of all selected weeks
+      // Aggregate mode: use fleet-week sums via fleetWeekSum helper
       const mid = Math.ceil(sortedWks.length / 2);
       const firstHalf = sortedWks.slice(0, mid);
       const secondHalf = sortedWks.slice(mid);
@@ -4496,6 +4526,13 @@ function _buildCoachingFovFleetData(eventsGlobal, weeks, aggregateMode){
       };
       trendMis = _wkTrend('misWkMap');
       trendSen = _wkTrend('senWkMap');
+    }
+
+    // Per-vehicle trends
+    for(const vd of fd.vehicles.values()){
+      const vWks = sortedWks.filter(w => vd.misWkMap.has(w) || vd.senWkMap.has(w));
+      vd.trendMis = calcTrend(vd.misWkMap, vWks);
+      vd.trendSen = calcTrend(vd.senWkMap, vWks);
     }
 
     // Combined trend for sort key: worsening > stable > improving
@@ -4596,7 +4633,7 @@ function _renderCoachingFovRepeatOffenders(eventsGlobal, weeks){
         <td class="num">${buildHorizCells(vd.misWkMap)}</td>
         <td class="num">${buildHorizCells(vd.senWkMap)}</td>
         <td></td>
-        <td></td>
+        <td>${_coachingFovTrendChip(vd.trendMis, vd.trendSen)}</td>
         <td>${csvBtn}</td>
       </tr>`);
     }
