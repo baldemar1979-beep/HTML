@@ -424,7 +424,7 @@
             <div class="int-footnote">
               Counts are shown with % in the same tile (count + percent), using <strong>Total Verified Valid Fatigue</strong> as the denominator.
               <br/>
-              <strong>Emails</strong> cell is clickable (opens evidence + downloadable CSV).
+              <strong>Verified Valid Fatigue</strong> and <strong>Emails</strong> cells are clickable (opens evidence + downloadable CSV).
             </div>
           </div>
         </div>
@@ -435,7 +435,7 @@
         <div class="subnote">
           A <strong>vehicle-shift</strong> is one vehicle on one calendar day in either <strong>Day (06:01–19:59)</strong> or <strong>Night (20:00–06:00)</strong>.
           <br/>
-          <strong>Total Events</strong> includes all events in that vehicle-shift after Network Filters. <strong>Verified Valid Fatigue</strong> includes verified microsleep + verified drowsiness only.
+          <strong>Verified Valid Fatigue</strong> includes verified microsleep + verified drowsiness only.
           <br/>
           <strong>Cap→Email Miles</strong> uses straight-line (haversine) distance from the CAP event location to the last email-event location (when both have lat/lon).
         </div>
@@ -448,7 +448,6 @@
                 <th class="sortable" data-icol="shift">Shift</th>
                 <th class="sortable" data-icol="fleet">Fleet</th>
                 <th class="sortable" data-icol="vehicle">Vehicle</th>
-                <th class="num sortable" data-icol="total_events">Total Events</th>
                 <th class="num sortable" data-icol="verified_total">Verified Valid Fatigue</th>
                 <th class="num sortable" data-icol="calls">Calls</th>
                 <th class="num sortable" data-icol="emails">Emails</th>
@@ -459,7 +458,6 @@
                 <th class="num sortable" data-icol="email_lat">Email Lat</th>
                 <th class="num sortable" data-icol="email_lon">Email Lon</th>
                 <th class="num sortable" data-icol="cap_to_email_miles">Cap→Email Miles</th>
-                <th class="sortable" data-icol="software_version">Software Version</th>
               </tr>
             </thead>
             <tbody id="int-body"></tbody>
@@ -782,7 +780,6 @@
             </li>
             <li>First <strong>CAP</strong> verified fatigue events are assumed <strong>Calls</strong>.</li>
             <li>Verified fatigue events <strong>after CAP</strong> are assumed <strong>Emails</strong> (click Emails to view evidence + download).</li>
-            <li><strong>Total Events</strong> column = all events in that vehicle-shift after Network Filters.</li>
             <li>KPI %s use <strong>Total Verified Valid Fatigue</strong> as the denominator.</li>
             <li><strong>Cap→Email Miles</strong> = straight-line distance (haversine) between CAP event coordinate and last email-event coordinate (when both exist).</li>
           </ul>
@@ -2281,7 +2278,9 @@ function buildInterventionsRows(eventsGlobal){
       email_lon: Number.isFinite(emailLon) ? emailLon : null,
       cap_to_email_miles: Number.isFinite(miles) ? miles : null,
       software_version: sv || '',
-      emailEvents: (emails > 0) ? vfArr.slice(cap) : []
+      emailEvents: (emails > 0) ? vfArr.slice(cap) : [],
+      allEvents: allArr,
+      vfEvents: vfArr
     });
   }
   return rows;
@@ -2363,20 +2362,24 @@ function renderInterventionsTab(eventsGlobal){
   const verifiedInDayCap = allRows.filter(r => r.shift === 'Day' && r.verified_total >= cap).reduce((s,r)=> s + (r.verified_total||0), 0);
   const verifiedInNightCap = allRows.filter(r => r.shift === 'Night' && r.verified_total >= cap).reduce((s,r)=> s + (r.verified_total||0), 0);
 
+  const medCapToEmailMiles = median(allRows.map(r => r.cap_to_email_miles).filter(x => Number.isFinite(x)));
+
   kpis.innerHTML = [
-    {k:`Total Verified Valid Fatigue (count / % of total verified)`, v: `${totalVerified.toLocaleString()} (100%)`},
+    {k:`Total Verified Valid Fatigue`, v: `${totalVerified.toLocaleString()}`},
     {k:`Day Verified (count / % of verified)`, v: `${dayVerified.toLocaleString()} (${pct(dayVerified,totalVerified)}%)`},
     {k:`Night Verified (count / % of verified)`, v: `${nightVerified.toLocaleString()} (${pct(nightVerified,totalVerified)}%)`},
     {k:`Vehicle-shifts ≥ CAP (${cap}) (verified / % of verified)`, v: `${verifiedInCapShifts.toLocaleString()} (${pct(verifiedInCapShifts,totalVerified)}%)`},
     {k:`Day shifts ≥ CAP (verified / % of verified)`, v: `${verifiedInDayCap.toLocaleString()} (${pct(verifiedInDayCap,totalVerified)}%)`},
-    {k:`Night shifts ≥ CAP (verified / % of verified)`, v: `${verifiedInNightCap.toLocaleString()} (${pct(verifiedInNightCap,totalVerified)}%)`}
+    {k:`Night shifts ≥ CAP (verified / % of verified)`, v: `${verifiedInNightCap.toLocaleString()} (${pct(verifiedInNightCap,totalVerified)}%)`},
+    {k:`Median Miles (CAP → Last Email)`, v: medCapToEmailMiles !== null ? Number(medCapToEmailMiles).toFixed(2) : 'N/A'}
   ].map(x => `<div class="kpi"><div class="k">${esc(x.k)}</div><div class="v">${esc(x.v)}</div></div>`).join('');
 
   const rows = sortInterventionsRows(allRows);
   intRowByKey = new Map(rows.map(r => [r.key, r]));
 
   tbody.innerHTML = rows.map(r => {
-    const isLatest = latestVersionStr && r.software_version && (cmpVersion(r.software_version, latestVersionStr) === 0);
+    const fmtNum = (x, d=5) => Number.isFinite(x) ? Number(x).toFixed(d) : '';
+    const fmtMiles = (x) => Number.isFinite(x) ? Number(x).toFixed(2) : '';
 
     const emailsClickable = (r.emails||0) > 0;
     const emailsCell = emailChipHTML(
@@ -2385,8 +2388,7 @@ function renderInterventionsTab(eventsGlobal){
       r.key
     );
 
-    const fmtNum = (x, d=5) => Number.isFinite(x) ? Number(x).toFixed(d) : '';
-    const fmtMiles = (x) => Number.isFinite(x) ? Number(x).toFixed(2) : '';
+    const vfCell = `<span class="link" data-intdrill="verified_fatigue" data-key="${esc(r.key)}" title="Click to download verified valid fatigue events CSV">${(r.verified_total||0).toLocaleString()}</span>`;
 
     return `
       <tr>
@@ -2394,8 +2396,7 @@ function renderInterventionsTab(eventsGlobal){
         <td>${esc(r.shift)}</td>
         <td>${esc(r.fleet)}</td>
         <td>${esc(r.vehicle)}</td>
-        <td class="num">${(r.total_events||0).toLocaleString()}</td>
-        <td class="num">${(r.verified_total||0).toLocaleString()}</td>
+        <td class="num">${vfCell}</td>
         <td class="num">${(r.calls||0).toLocaleString()}</td>
         <td class="num">${emailsCell}</td>
         <td>${esc(r.cap_time)}</td>
@@ -2405,7 +2406,6 @@ function renderInterventionsTab(eventsGlobal){
         <td class="num">${fmtNum(r.email_lat)}</td>
         <td class="num">${fmtNum(r.email_lon)}</td>
         <td class="num">${fmtMiles(r.cap_to_email_miles)}</td>
-        <td>${versionBadgeHTML(r.software_version, isLatest)}</td>
       </tr>
     `;
   }).join('');
@@ -2427,6 +2427,24 @@ document.addEventListener('click', (e) => {
   const title = `Interventions Evidence — Emails (post-cap verified fatigue) — ${row.fleet} / ${row.vehicle} — ${row.dateISO} (${row.shift})`;
   const sub = `Emails are verified fatigue events beyond the first ${cap} for this vehicle-shift. Network filters applied (weeks/date/fleet/vehicle).`;
   const dl = `${row.fleet}_${row.vehicle}_${row.dateISO}_${row.shift}_emails_postcap.csv`.replace(/\s+/g,'_');
+
+  openEvidenceModal(title, sub, rowsToShow, dl);
+});
+
+/* Verified Valid Fatigue drilldown */
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-intdrill="verified_fatigue"]');
+  if(!el) return;
+  const key = el.getAttribute('data-key');
+  if(!key) return;
+
+  const row = intRowByKey.get(key);
+  if(!row) return;
+
+  const rowsToShow = row.vfEvents || [];
+  const title = `Interventions Evidence — Verified Valid Fatigue — ${row.fleet} / ${row.vehicle} — ${row.dateISO} (${row.shift})`;
+  const sub = `All verified valid fatigue events for this vehicle-shift. Network filters applied (weeks/date/fleet/vehicle).`;
+  const dl = `${row.fleet}_${row.vehicle}_${row.dateISO}_${row.shift}_verified_fatigue.csv`.replace(/\s+/g,'_');
 
   openEvidenceModal(title, sub, rowsToShow, dl);
 });
