@@ -1755,6 +1755,10 @@ function setActiveTab(tabId){
 
   document.getElementById('statsRow').style.display = (tabId === 'fleetTab') ? 'flex' : 'none';
 
+  // Controls sidebar: hide on How To tab
+  const controlsSidebar = document.querySelector('.controls');
+  if (controlsSidebar) controlsSidebar.style.display = (tabId === 'howTab') ? 'none' : '';
+
   // Classification filter: only visible on Fleet tab
   const classFilterBlock = document.getElementById('class-filter-block');
   if (classFilterBlock) classFilterBlock.style.display = (tabId === 'fleetTab') ? '' : 'none';
