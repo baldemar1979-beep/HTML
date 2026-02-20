@@ -935,55 +935,235 @@
 
     <!-- TAB 6: How To -->
     <div id="howTab" class="tabpage">
-      <div class="section-title">How To (Event Logic + Interventions + FOV Column Explanations)</div>
+      <div class="section-title">How To — Comprehensive User Guide</div>
 
-      <div class="card">
-        <h3>Event Categories (used in totals)</h3>
-        <div style="color:#34495e; font-size:13px; line-height:1.45;">
+      <!-- Table of Contents -->
+      <div class="card" style="background:#f0f4f8; border-left:4px solid #3498db;">
+        <h3 style="color:#2980b9;">📋 Table of Contents</h3>
+        <ol style="color:#34495e; font-size:13px; line-height:1.8; padding-left:20px; margin-top:6px;">
+          <li><a href="#ht-getting-started" style="color:#2980b9;">Getting Started</a></li>
+          <li><a href="#ht-controls" style="color:#2980b9;">Controls &amp; Filters</a></li>
+          <li><a href="#ht-fleet" style="color:#2980b9;">Fleet Management Tab</a></li>
+          <li><a href="#ht-interventions" style="color:#2980b9;">Interventions Tab</a></li>
+          <li><a href="#ht-fov" style="color:#2980b9;">FOV Tab</a></li>
+          <li><a href="#ht-trends" style="color:#2980b9;">Trends Tab</a></li>
+          <li><a href="#ht-coaching" style="color:#2980b9;">Coaching Tab</a></li>
+          <li><a href="#ht-event-logic" style="color:#2980b9;">Event Logic &amp; Calculations</a></li>
+          <li><a href="#ht-tips" style="color:#2980b9;">Tips &amp; Best Practices</a></li>
+          <li><a href="#ht-troubleshooting" style="color:#2980b9;">Troubleshooting</a></li>
+        </ol>
+      </div>
+
+      <!-- Getting Started -->
+      <div id="ht-getting-started" class="card">
+        <h3>🚀 Getting Started</h3>
+        <div style="color:#34495e; font-size:13px; line-height:1.55;">
+          <ol style="padding-left:18px; margin-top:6px;">
+            <li><strong>Step 1 — Upload Your Data:</strong> Click the <strong>Upload CSV</strong> button and select your exported event CSV file. Required columns: <code>event_id</code>, <code>vehicle</code>, <code>fleet</code>, <code>detection_time</code>, <code>classification</code>, <code>event_type</code>, <code>confirmation</code>.</li>
+            <li><strong>Step 2 — Select Report Weeks:</strong> Check one or more <strong>Report Week</strong> checkboxes in the Controls panel. At least one week must be selected for data to appear.</li>
+            <li><strong>Step 3 — Apply Network Filters:</strong> Use the date range, fleet, and vehicle filters to narrow down the data set.</li>
+            <li><strong>Step 4 — Navigate Tabs:</strong> Click any of the six tab buttons (Fleet, Interventions, FOV, Trends, Coaching, How To) to switch views.</li>
+            <li><strong>Step 5 — Data Persistence:</strong> Uploaded data, active filters, expanded rows, and coaching logs are saved automatically in your browser's <code>localStorage</code> and will persist across page refreshes.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Controls & Filters -->
+      <div id="ht-controls" class="card">
+        <h3>🎛️ Controls &amp; Filters</h3>
+        <div style="color:#34495e; font-size:13px; line-height:1.55;">
           <ul style="padding-left:18px; margin-top:6px;">
-            <li><strong>Total Events</strong> = all rows after network filters (week/date/fleet/vehicle). (Fleet tab can further filter by Classification)</li>
-            <li><strong>Valid Fatigue</strong> = classification is <code>fatigue - drowsiness</code> or <code>fatigue - microsleep</code> AND confirmation is <code>verified</code></li>
-            <li><strong>False Events</strong> = classification is <code>fatigue - criteria not met</code></li>
-            <li><strong>FOV Events</strong> = event_type is <code>field of view exception</code> OR classification starts with <code>FOV exception</code></li>
-            <li><strong>Precision %</strong> = <strong>Valid Fatigue</strong> / (<strong>Total Events − FOV Events</strong>) × 100</li>
+            <li><strong>Network Filters</strong> — apply to all tabs except the Classification filter. Use these to scope data by week, date range, fleet, or vehicle.</li>
+            <li><strong>Classification Filter (Fleet Tab Only)</strong> — appears on the Fleet tab and further restricts visible rows by event classification.</li>
+            <li><strong>Reset Filters</strong> — click the <strong>Reset Filters</strong> button to restore all filter controls to their default values.</li>
+            <li><strong>Collapsible Sections</strong> — click any Controls section header to collapse or expand it, keeping the interface tidy.</li>
           </ul>
         </div>
       </div>
 
-      <div class="card">
-        <h3>Interventions (CAP KPI) Logic</h3>
+      <!-- Fleet Management Tab -->
+      <div id="ht-fleet" class="card">
+        <h3>🚛 Fleet Management Tab — Step-by-Step</h3>
+        <div class="hint" style="margin-bottom:8px;">Purpose: View fleet-level and vehicle-level event totals, precision percentages, and firmware version distribution.</div>
         <div style="color:#34495e; font-size:13px; line-height:1.55;">
+          <ol style="padding-left:18px; margin-top:6px;">
+            <li><strong>Step 1 — Review Fleet KPIs:</strong> Seven summary KPIs are shown at the top — Total Events, Valid Fatigue, False Events, FOV Events, Precision %, Active Fleets, and Active Vehicles.</li>
+            <li><strong>Step 2 — Apply Fleet Precision Zone Filter:</strong> Use the zone filter chips to show only
+              <span style="background:#ffe5e5;color:#7b241c;border-radius:4px;padding:1px 6px;font-size:12px;">Red</span>,
+              <span style="background:#fff4cc;color:#7a5a00;border-radius:4px;padding:1px 6px;font-size:12px;">Yellow</span>, or
+              <span style="background:#e6f7e6;color:#1e5631;border-radius:4px;padding:1px 6px;font-size:12px;">Green</span>
+              precision-zone fleets.</li>
+            <li><strong>Step 3 — Review Fleet Table:</strong> Columns are sortable. Click a fleet row to expand and see individual vehicles. Click any event count cell to open the Evidence Modal.</li>
+            <li><strong>Step 4 — Drill into Vehicle Detail:</strong> After expanding a fleet, each vehicle row shows event counts, precision %, and the firmware version (<code>Version</code> column) for that vehicle.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Interventions Tab -->
+      <div id="ht-interventions" class="card">
+        <h3>📞 Interventions Tab — Step-by-Step</h3>
+        <div class="hint" style="margin-bottom:8px;">Purpose: Track coaching interventions using the CAP methodology.</div>
+        <div style="color:#34495e; font-size:13px; line-height:1.55;">
+          <ol style="padding-left:18px; margin-top:6px;">
+            <li><strong>Step 1 — Set CAP Value:</strong> Enter the CAP threshold (default <code>10</code>) in the CAP input field. This defines how many verified fatigue events per shift are treated as Calls before switching to Emails.</li>
+            <li><strong>Step 2 — Understand the Logic:</strong> Grouping is per vehicle, per shift, per calendar day. Shift windows — <strong>Day</strong>: 06:01–19:59, <strong>Night</strong>: 20:00–06:00. First CAP events = Calls; events after CAP = Emails.</li>
+            <li><strong>Step 3 — Review CAP KPI Summary:</strong> KPI cards show total Calls, total Emails, and Cap→Email Miles across the filtered data set.</li>
+            <li><strong>Step 4 — Apply Email Filter (optional):</strong> Filter the vehicle-shifts table by email bucket —
+              <span style="background:#ffe5e5;color:#7b241c;border-radius:4px;padding:1px 6px;font-size:12px;">Red</span>,
+              <span style="background:#fff4cc;color:#7a5a00;border-radius:4px;padding:1px 6px;font-size:12px;">Yellow</span>,
+              <span style="background:#e0e0e0;color:#555;border-radius:4px;padding:1px 6px;font-size:12px;">Grey</span>, or
+              <span style="background:#f4f4f4;color:#888;border-radius:4px;padding:1px 6px;font-size:12px;">NA</span>.</li>
+            <li><strong>Step 5 — Review Vehicle-Shifts Table:</strong> Each row represents a unique vehicle/shift combination. Sortable columns include Calls, Emails, and Cap→Email Miles.</li>
+            <li><strong>Step 6 — Download Evidence:</strong> Click any clickable Emails count to open the Evidence Modal and download a CSV of those events.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- FOV Tab -->
+      <div id="ht-fov" class="card">
+        <h3>📷 FOV Tab — Step-by-Step</h3>
+        <div class="hint" style="margin-bottom:8px;">Purpose: Analyze FOV exceptions (Camera Misaligned &amp; Sensor Covered) with proximity risk and exposure duration.</div>
+        <div style="color:#34495e; font-size:13px; line-height:1.55;">
+          <ol style="padding-left:18px; margin-top:6px;">
+            <li><strong>Step 1 — Understand Key Metrics:</strong>
+              <ul style="padding-left:18px; margin-top:4px;">
+                <li><strong>Proximity Gap</strong> — time from last verified fatigue to first FOV event (greater gap = higher risk).</li>
+                <li><strong>Exposure</strong> — duration between the first and latest FOV event for a vehicle.</li>
+                <li><strong>Last Verified Fatigue</strong> — timestamp of the most recent verified fatigue event; green-highlighted when it occurs after the latest FOV event (camera likely fixed).</li>
+              </ul>
+            </li>
+            <li><strong>Step 2 — Apply FOV Exception Type Filter:</strong> Use the type filter to include or exclude <code>FOV exception - camera misaligned</code> and/or <code>FOV exception - sensor covered</code>.</li>
+            <li><strong>Step 3 — Apply Proximity Risk Filter:</strong>
+              <span style="background:#ffe5e5;color:#7b241c;border-radius:4px;padding:1px 6px;font-size:12px;">Red &gt;5 h</span>
+              <span style="background:#fff4cc;color:#7a5a00;border-radius:4px;padding:1px 6px;font-size:12px;">Yellow 1–5 h</span>
+              <span style="background:#e6f7e6;color:#1e5631;border-radius:4px;padding:1px 6px;font-size:12px;">Green &lt;1 h</span>
+            </li>
+            <li><strong>Step 4 — Review FOV Summary KPIs:</strong> Cards show total FOV events, affected fleets, affected vehicles, and average Proximity Gap.</li>
+            <li><strong>Step 5 — Review FOV Table:</strong> Rows are grouped by fleet and collapsed by default. Click a fleet row to expand vehicle detail. Proximity Gap and Exposure show fleet totals when collapsed. Click event count cells to open the Evidence Modal.</li>
+            <li><strong>Step 6 — Identify Fixed Cameras:</strong> Rows with a green-highlighted <strong>Last Verified Fatigue</strong> indicate the camera has likely been corrected.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Trends Tab -->
+      <div id="ht-trends" class="card">
+        <h3>📈 Trends Tab — Step-by-Step</h3>
+        <div class="hint" style="margin-bottom:8px;">Purpose: Executive-level analytics with week-over-week insights. Requires 2+ weeks of data.</div>
+        <div style="color:#34495e; font-size:13px; line-height:1.55;">
+          <ol style="padding-left:18px; margin-top:6px;">
+            <li><strong>Step 1 — Toggle Aggregation Mode:</strong> Switch between <em>All Weeks</em> (cumulative) and <em>Latest Week</em> to change what the KPIs and charts reflect.</li>
+            <li><strong>Step 2 — Review Executive Summary KPIs:</strong> High-level metrics including overall precision, total events, and week-over-week delta indicators.</li>
+            <li><strong>Step 3 — Review Network Performance Overview:</strong> Charts display precision and volume trends across all selected weeks.</li>
+            <li><strong>Step 4 — Review Performance Leaders:</strong> Fleets achieving ≥ 60% precision are highlighted as leaders.</li>
+            <li><strong>Step 5 — Identify Most Improved Fleets:</strong> Fleets with the largest positive precision change between the two most recent weeks.</li>
+            <li><strong>Step 6 — Identify Most Declined Fleets:</strong> Fleets with the largest negative precision change, requiring immediate attention.</li>
+            <li><strong>Step 7 — Review Weekly Precision Trends:</strong> Per-fleet line charts showing precision % across all loaded weeks.</li>
+            <li><strong>Step 8 — Review Activity Changes:</strong> Volume Trends section with event-type filters to track changes in total, valid, false, and FOV events week over week.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Coaching Tab -->
+      <div id="ht-coaching" class="card">
+        <h3>🎯 Coaching Tab — Step-by-Step</h3>
+        <div class="hint" style="margin-bottom:8px;">Purpose: Prioritize coaching efforts using risk scores (0–100), track actions, and identify persistent underperformers.</div>
+        <div style="color:#34495e; font-size:13px; line-height:1.55;">
+          <ol style="padding-left:18px; margin-top:6px;">
+            <li><strong>Step 1 — Understand Risk Scoring:</strong> Each fleet receives a composite risk score:
+              <ul style="padding-left:18px; margin-top:4px;">
+                <li>Precision score: 0–50 pts (lower precision = higher score)</li>
+                <li>FOV Rate score: 0–30 pts</li>
+                <li>Valid Alert Trend score: 0–20 pts</li>
+              </ul>
+            </li>
+            <li><strong>Step 2 — Toggle Aggregation Mode:</strong> Switch between <em>All Weeks</em> and <em>Latest Week</em> to adjust scoring context.</li>
+            <li><strong>Step 3 — Review Risk Level Distribution:</strong> Summary cards show fleet counts by level —
+              <span style="background:#ffe5e5;color:#7b241c;border-radius:4px;padding:1px 6px;font-size:12px;">URGENT</span>
+              <span style="background:#ffd6b3;color:#7a3a00;border-radius:4px;padding:1px 6px;font-size:12px;">HIGH</span>
+              <span style="background:#fff4cc;color:#7a5a00;border-radius:4px;padding:1px 6px;font-size:12px;">MEDIUM</span>
+              <span style="background:#dce9ff;color:#1a3a6b;border-radius:4px;padding:1px 6px;font-size:12px;">LOW</span>
+              <span style="background:#e6f7e6;color:#1e5631;border-radius:4px;padding:1px 6px;font-size:12px;">GOOD</span>
+            </li>
+            <li><strong>Step 4 — Review Coaching Priority Matrix:</strong> Sortable table of all fleets with risk score, level, precision %, and FOV rate. Filter by risk level to focus on specific groups.</li>
+            <li><strong>Step 5 — Review Persistent Red Zone Fleets:</strong> Fleets with &lt;25% precision across multiple weeks are flagged for escalation.</li>
+            <li><strong>Step 6 — Review FOV Repeat Offenders:</strong> Fleets with FOV issues in 2+ weeks are listed for targeted camera maintenance follow-up.</li>
+            <li><strong>Step 7 — Log Coaching Actions:</strong> Click the 📝 <strong>Log</strong> button on any fleet row to record: session date, coach name, session type, topics covered, notes, action items, and follow-up date.</li>
+            <li><strong>Step 8 — Manage Coaching Logs:</strong> Use the coaching log section to export logs to CSV, import a previously exported CSV, or view, edit, and delete individual log entries.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Event Logic & Calculations -->
+      <div id="ht-event-logic" class="card">
+        <h3>🔢 Event Logic &amp; Calculations</h3>
+        <div style="color:#34495e; font-size:13px; line-height:1.55;">
+
+          <h4 style="margin-top:10px; margin-bottom:4px;">Event Categories (used in totals)</h4>
+          <ul style="padding-left:18px; margin-top:6px;">
+            <li><strong>Total Events</strong> = all rows after network filters (week/date/fleet/vehicle). Fleet tab can further filter by Classification.</li>
+            <li><strong>Valid Fatigue</strong> = classification is <code>fatigue - drowsiness</code> or <code>fatigue - microsleep</code> AND confirmation is <code>verified</code>.</li>
+            <li><strong>False Events</strong> = classification is <code>fatigue - criteria not met</code>.</li>
+            <li><strong>FOV Events</strong> = event_type is <code>field of view exception</code> OR classification starts with <code>FOV exception</code>.</li>
+            <li><strong>Precision %</strong> = <strong>Valid Fatigue</strong> / (<strong>Total Events − FOV Events</strong>) × 100.</li>
+          </ul>
+
+          <h4 style="margin-top:14px; margin-bottom:4px;">Interventions (CAP KPI) Logic</h4>
           <ul style="padding-left:18px; margin-top:6px;">
             <li>Grouping is <strong>per vehicle, per shift, per calendar day</strong>.</li>
             <li>Only <strong>verified valid fatigue</strong> events count toward Calls/Emails.</li>
-            <li>Shift windows:
-              <ul style="padding-left:18px; margin-top:6px;">
-                <li><strong>Day</strong>: 06:01–19:59</li>
-                <li><strong>Night</strong>: 20:00–06:00</li>
-              </ul>
-            </li>
-            <li>First <strong>CAP</strong> verified fatigue events are assumed <strong>Calls</strong>.</li>
-            <li>Verified fatigue events <strong>after CAP</strong> are assumed <strong>Emails</strong> (click Emails to view evidence + download).</li>
+            <li>Shift windows: <strong>Day</strong> 06:01–19:59 | <strong>Night</strong> 20:00–06:00.</li>
+            <li>First <strong>CAP</strong> verified fatigue events per shift are assumed <strong>Calls</strong>.</li>
+            <li>Verified fatigue events <strong>after CAP</strong> are assumed <strong>Emails</strong> (click Emails count to view evidence + download).</li>
             <li>KPI %s use <strong>Total Verified Valid Fatigue</strong> as the denominator.</li>
-            <li><strong>Cap→Email Miles</strong> = straight-line distance (haversine) between CAP event coordinate and last email-event coordinate (when both exist).</li>
+            <li><strong>Cap→Email Miles</strong> = straight-line distance (haversine) between the CAP event coordinate and the last email-event coordinate (when both exist).</li>
           </ul>
-        </div>
-      </div>
 
-      <div class="card">
-        <h3>FOV Column Explanations (Camera Misaligned &amp; Sensor Covered)</h3>
-        <div style="color:#34495e; font-size:13px; line-height:1.55;">
+          <h4 style="margin-top:14px; margin-bottom:4px;">FOV Column Explanations (Camera Misaligned &amp; Sensor Covered)</h4>
           <ul style="padding-left:18px; margin-top:6px;">
             <li><strong>FOV logic</strong>: rows are computed from <code>FOV exception - camera misaligned</code> and <code>FOV exception - sensor covered</code>. Use the filter panel to include/exclude each type.</li>
-            <li><strong>Verified fatigue logic</strong> on this tab:
-              <ul style="padding-left:18px; margin-top:6px;">
-                <li>Verified fatigue includes <code>fatigue - microsleep</code> and <code>fatigue - drowsiness</code> with <code>confirmation=verified</code>.</li>
-              </ul>
-            </li>
+            <li><strong>Verified fatigue logic</strong> on this tab: includes <code>fatigue - microsleep</code> and <code>fatigue - drowsiness</code> with <code>confirmation=verified</code>.</li>
             <li><strong>Proximity Gap</strong> = time from last verified fatigue to first FOV event. <strong>Greater gap = higher risk</strong> (Red &gt; 5 h, Green &lt; 1 h).</li>
             <li><strong>Exposure</strong> = latest FOV event − first FOV event. Measures how long the vehicle continued operating with FOV issues.</li>
             <li><strong>Last Verified Fatigue</strong> is green-highlighted when it occurs after the latest FOV event (camera likely fixed).</li>
             <li><strong>Fleet rows</strong> are collapsed by default; click a fleet to expand vehicle detail. Proximity Gap and Exposure show fleet totals (sum of per-vehicle seconds) when collapsed.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Tips & Best Practices -->
+      <div id="ht-tips" class="card" style="background:#f0fff4; border-left:4px solid #27ae60;">
+        <h3 style="color:#27ae60;">💡 Tips &amp; Best Practices</h3>
+        <div style="color:#34495e; font-size:13px; line-height:1.55;">
+          <ul style="padding-left:18px; margin-top:6px;">
+            <li><strong>Multi-Week Analysis:</strong> Select multiple Report Week checkboxes to enable Trends and Coaching tab analytics.</li>
+            <li><strong>Drill Down:</strong> Start at fleet-level KPIs → expand fleet rows → click event counts for evidence details.</li>
+            <li><strong>Use Precision Zones:</strong> Filter by <span style="background:#ffe5e5;color:#7b241c;border-radius:4px;padding:1px 5px;font-size:12px;">Red</span> / <span style="background:#fff4cc;color:#7a5a00;border-radius:4px;padding:1px 5px;font-size:12px;">Yellow</span> / <span style="background:#e6f7e6;color:#1e5631;border-radius:4px;padding:1px 5px;font-size:12px;">Green</span> to quickly identify fleets needing attention.</li>
+            <li><strong>Coaching Workflow:</strong> Review Coaching tab → prioritize by risk score → log actions → set follow-up dates.</li>
+            <li><strong>Export Evidence:</strong> Click any clickable event count to open the Evidence Modal and download a CSV of those events.</li>
+            <li><strong>Data Persistence:</strong> Data, filters, expanded rows, and coaching logs are saved automatically in browser <code>localStorage</code>.</li>
+            <li><strong>Collapsible Sections:</strong> Collapse Controls sections you don't need to maximize table space.</li>
+            <li><strong>Firmware Tracking:</strong> Use the <code>Version</code> column on the Fleet tab to identify vehicles needing firmware updates.</li>
+            <li><strong>Evidence Modals:</strong> All clickable event counts open modals with detailed event listings and a download option.</li>
+            <li><strong>Aggregate vs. Latest:</strong> Toggle aggregation modes on Trends and Coaching tabs to switch between cumulative and single-week views.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Troubleshooting -->
+      <div id="ht-troubleshooting" class="card" style="background:#fff3f3; border-left:4px solid #e74c3c;">
+        <h3 style="color:#c0392b;">🛠️ Troubleshooting</h3>
+        <div style="color:#34495e; font-size:13px; line-height:1.55;">
+          <ul style="padding-left:18px; margin-top:6px;">
+            <li><strong>No data showing:</strong> Check that you have selected at least one Report Week checkbox.</li>
+            <li><strong>Empty FOV tab:</strong> FOV data requires <code>FOV exception</code> classifications in your CSV.</li>
+            <li><strong>Trends not appearing:</strong> Trends require at least 2 weeks of data to calculate deltas.</li>
+            <li><strong>Coaching scores missing:</strong> Ensure you have selected weeks and the CSV contains all required fields.</li>
+            <li><strong>Filters not working:</strong> Click <strong>Reset Filters</strong> to restore defaults, then reapply your desired filters.</li>
+            <li><strong>Clear all data:</strong> Click the <strong>Clear Data</strong> button to wipe all stored events and start fresh.</li>
+            <li><strong>CSV format errors:</strong> Check the error message for specific column/parsing issues. Required columns: <code>event_id</code>, <code>vehicle</code>, <code>fleet</code>, <code>detection_time</code>, <code>classification</code>, <code>event_type</code>, <code>confirmation</code>.</li>
+            <li><strong>Coaching logs not saving:</strong> Logs are stored in browser <code>localStorage</code>; clearing browser data will delete logs. Use the <strong>Export CSV</strong> option before clearing browser data.</li>
+            <li><strong>Charts not rendering:</strong> Ensure you have at least 2 weeks of data loaded for Trends tab visualizations.</li>
+            <li><strong>Expanded rows not persisting:</strong> Expanded fleet rows are saved automatically. If they are not restoring, try clicking <strong>Reset Filters</strong> and then re-expanding.</li>
           </ul>
         </div>
       </div>
