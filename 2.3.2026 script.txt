@@ -424,7 +424,7 @@
             <div class="int-footnote">
               Counts are shown with % in the same tile (count + percent), using <strong>Total Verified Valid Fatigue</strong> as the denominator.
               <br/>
-              <strong>Total Events</strong>, <strong>Verified Valid Fatigue</strong>, and <strong>Emails</strong> cells are clickable (opens evidence + downloadable CSV).
+              <strong>Verified Valid Fatigue</strong> and <strong>Emails</strong> cells are clickable (opens evidence + downloadable CSV).
             </div>
           </div>
         </div>
@@ -435,7 +435,7 @@
         <div class="subnote">
           A <strong>vehicle-shift</strong> is one vehicle on one calendar day in either <strong>Day (06:01–19:59)</strong> or <strong>Night (20:00–06:00)</strong>.
           <br/>
-          <strong>Total Events</strong> includes all events in that vehicle-shift after Network Filters. <strong>Verified Valid Fatigue</strong> includes verified microsleep + verified drowsiness only.
+          <strong>Verified Valid Fatigue</strong> includes verified microsleep + verified drowsiness only.
           <br/>
           <strong>Cap→Email Miles</strong> uses straight-line (haversine) distance from the CAP event location to the last email-event location (when both have lat/lon).
         </div>
@@ -448,7 +448,6 @@
                 <th class="sortable" data-icol="shift">Shift</th>
                 <th class="sortable" data-icol="fleet">Fleet</th>
                 <th class="sortable" data-icol="vehicle">Vehicle</th>
-                <th class="num sortable" data-icol="total_events">Total Events</th>
                 <th class="num sortable" data-icol="verified_total">Verified Valid Fatigue</th>
                 <th class="num sortable" data-icol="calls">Calls</th>
                 <th class="num sortable" data-icol="emails">Emails</th>
@@ -781,7 +780,6 @@
             </li>
             <li>First <strong>CAP</strong> verified fatigue events are assumed <strong>Calls</strong>.</li>
             <li>Verified fatigue events <strong>after CAP</strong> are assumed <strong>Emails</strong> (click Emails to view evidence + download).</li>
-            <li><strong>Total Events</strong> column = all events in that vehicle-shift after Network Filters.</li>
             <li>KPI %s use <strong>Total Verified Valid Fatigue</strong> as the denominator.</li>
             <li><strong>Cap→Email Miles</strong> = straight-line distance (haversine) between CAP event coordinate and last email-event coordinate (when both exist).</li>
           </ul>
@@ -2390,7 +2388,6 @@ function renderInterventionsTab(eventsGlobal){
       r.key
     );
 
-    const totalEventsCell = `<span class="link" data-intdrill="total_events" data-key="${esc(r.key)}" title="Click to download all events CSV">${(r.total_events||0).toLocaleString()}</span>`;
     const vfCell = `<span class="link" data-intdrill="verified_fatigue" data-key="${esc(r.key)}" title="Click to download verified valid fatigue events CSV">${(r.verified_total||0).toLocaleString()}</span>`;
 
     return `
@@ -2399,7 +2396,6 @@ function renderInterventionsTab(eventsGlobal){
         <td>${esc(r.shift)}</td>
         <td>${esc(r.fleet)}</td>
         <td>${esc(r.vehicle)}</td>
-        <td class="num">${totalEventsCell}</td>
         <td class="num">${vfCell}</td>
         <td class="num">${(r.calls||0).toLocaleString()}</td>
         <td class="num">${emailsCell}</td>
@@ -2449,24 +2445,6 @@ document.addEventListener('click', (e) => {
   const title = `Interventions Evidence — Verified Valid Fatigue — ${row.fleet} / ${row.vehicle} — ${row.dateISO} (${row.shift})`;
   const sub = `All verified valid fatigue events for this vehicle-shift. Network filters applied (weeks/date/fleet/vehicle).`;
   const dl = `${row.fleet}_${row.vehicle}_${row.dateISO}_${row.shift}_verified_fatigue.csv`.replace(/\s+/g,'_');
-
-  openEvidenceModal(title, sub, rowsToShow, dl);
-});
-
-/* Total Events drilldown */
-document.addEventListener('click', (e) => {
-  const el = e.target.closest('[data-intdrill="total_events"]');
-  if(!el) return;
-  const key = el.getAttribute('data-key');
-  if(!key) return;
-
-  const row = intRowByKey.get(key);
-  if(!row) return;
-
-  const rowsToShow = row.allEvents || [];
-  const title = `Interventions Evidence — All Events — ${row.fleet} / ${row.vehicle} — ${row.dateISO} (${row.shift})`;
-  const sub = `All events for this vehicle-shift. Network filters applied (weeks/date/fleet/vehicle).`;
-  const dl = `${row.fleet}_${row.vehicle}_${row.dateISO}_${row.shift}_all_events.csv`.replace(/\s+/g,'_');
 
   openEvidenceModal(title, sub, rowsToShow, dl);
 });
