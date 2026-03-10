@@ -861,24 +861,9 @@
         <!-- Persistent Red Zone Alert Banner -->
         <div id="coaching-redzone-banner"></div>
 
-        <!-- Risk Level Summary Table -->
+        <!-- Precision Zone Summary + Export Buttons -->
         <div style="margin-top:12px;">
-          <div style="font-size:13px; font-weight:950; color:#2c3e50; margin-bottom:8px;">Risk Level Distribution</div>
-          <div class="table-wrap" style="box-shadow:none; border:1px solid #eee;">
-            <table class="coaching-summary-table">
-              <thead>
-                <tr>
-                  <th>Risk Level</th>
-                  <th>Score Range</th>
-                  <th class="num">Fleet Count</th>
-                  <th class="num">% of Network</th>
-                </tr>
-              </thead>
-              <tbody id="coaching-risk-summary-tbody">
-                <tr><td colspan="4" style="text-align:center;padding:20px;color:#95a5a6;">Upload CSV(s) to view risk distribution</td></tr>
-              </tbody>
-            </table>
-          </div>
+          <div id="coaching-summary-zone-badges" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;"></div>
           <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
             <button class="btn" id="coaching-view-all-btn" style="font-size:13px;">View All Fleets ↓</button>
             <button class="btn" id="coaching-export-report-btn" style="font-size:13px;">📥 Download Coaching Report CSV</button>
@@ -889,7 +874,7 @@
         </div>
       </div>
 
-      <!-- Coaching Priority Matrix (Expandable) -->
+      <!-- Fleet Precision Overview (Expandable) -->
       <div class="card" id="coaching-matrix-card" style="margin-bottom:14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
           <h3 style="margin:0; color:#2c3e50; font-size:16px; font-weight:1000;">📊 Fleet Precision Overview</h3>
@@ -1091,7 +1076,7 @@
       <!-- Coaching Tab -->
       <div id="ht-coaching" class="card">
         <h3>🎯 Coaching Tab — Step-by-Step</h3>
-        <div class="hint" style="margin-bottom:8px;">Purpose: Prioritize coaching efforts using risk scores (0–100), track actions, and identify persistent underperformers.</div>
+        <div class="hint" style="margin-bottom:8px;">Purpose: Prioritize coaching efforts using fleet precision data, track actions, and identify persistent underperformers.</div>
         <div style="color:#34495e; font-size:13px; line-height:1.55;">
           <ol style="padding-left:18px; margin-top:6px;">
             <li><strong>Step 1 — Fleet Precision Overview:</strong> Each fleet is listed by current Precision %, WoW change, and streak (consecutive weeks in current zone). Sort by Precision % to see worst performers first.</li>
@@ -5161,8 +5146,8 @@ function renderCoachingTab(eventsGlobal){
 ======================================================================================= */
 
 function _precisionZone(p){
-  if(p < 0.50) return 'red';
-  if(p < 0.60) return 'yellow';
+  if(p < 50) return 'red';
+  if(p < 60) return 'yellow';
   return 'green';
 }
 
@@ -5217,12 +5202,6 @@ function computeCoachingRiskScores(fleetData, weeks, aggregateMode){
 }
 
 function _renderCoachingSummaryDashboard(riskResults, weeks){
-  const total = riskResults.length;
-  const levels = ['URGENT','HIGH','MEDIUM','LOW','GOOD'];
-  const counts = {};
-  for(const l of levels) counts[l] = 0;
-  for(const r of riskResults){ counts[r.riskLevel] = (counts[r.riskLevel]||0) + 1; }
-
   // Week info
   const wkInfo = document.getElementById('coaching-week-info');
   if(wkInfo){
@@ -5231,32 +5210,33 @@ function _renderCoachingSummaryDashboard(riskResults, weeks){
     wkInfo.textContent = `Weeks Selected: ${wkCount} week${wkCount!==1?'s':''} ${dateRange?`(${dateRange})`:''}`;
   }
 
-  // Risk summary table
-  const tbody = document.getElementById('coaching-risk-summary-tbody');
-  if(tbody){
-    if(!total){
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#95a5a6;">Upload CSV(s) to view risk distribution</td></tr>';
+  // Precision Zone Summary badges in summary card
+  const summaryBadges = document.getElementById('coaching-summary-zone-badges');
+  if(summaryBadges && currentCoachingData && currentCoachingData.length){
+    const allWeeks = Array.from(selectedWeeks);
+    const sortedWeeks = allWeeks.slice().sort();
+    const latestWeek = sortedWeeks[sortedWeeks.length - 1];
+    let red = 0, yellow = 0, green = 0, persistentRed = 0;
+    (currentCoachingData || []).forEach(fd => {
+      const wd = fd.weekMap ? (fd.weekMap.get ? fd.weekMap.get(latestWeek) : fd.weekMap[latestWeek]) : null;
+      if(!wd || !wd.total) return;
+      const p = precisionExFov(wd.valid, wd.total, wd.fov);
+      const zone = _precisionZone(p);
+      if(zone === 'red') red++;
+      else if(zone === 'yellow') yellow++;
+      else green++;
+    });
+    persistentRed = (persistentRedZoneFleets || []).length;
+    let html = '';
+    if(!riskResults.length){
+      html = '<span style="color:#7f8c8d;font-size:12px;">Upload CSV(s) to view zone summary</span>';
     } else {
-      const LEVEL_META = {
-        URGENT: {icon:'🚨', label:'URGENT', range:'80–100'},
-        HIGH:   {icon:'⚠️', label:'HIGH', range:'60–79'},
-        MEDIUM: {icon:'⚠️', label:'MEDIUM', range:'40–59'},
-        LOW:    {icon:'ℹ️', label:'LOW', range:'20–39'},
-        GOOD:   {icon:'✅', label:'GOOD', range:'0–19'},
-      };
-      tbody.innerHTML = levels.map(l => {
-        const m = LEVEL_META[l];
-        const cnt = counts[l] || 0;
-        const pct = total > 0 ? (cnt/total*100).toFixed(1) : '0.0';
-        const cls = _riskLevelClass(l);
-        return `<tr data-risk-filter-level="${esc(l)}" title="Click to filter matrix to ${m.label} risk fleets">
-          <td><span class="badge ${cls}">${m.icon} ${m.label}</span></td>
-          <td>${m.range}</td>
-          <td class="num"><span class="link">${cnt} fleet${cnt!==1?'s':''}</span></td>
-          <td class="num">${pct}%</td>
-        </tr>`;
-      }).join('');
+      if(red) html += `<span class="zone-badge-btn zone-badge-red" onclick="_filterCoachingByZone('red')">🔴 Red &nbsp;<strong>${red}</strong></span>`;
+      if(yellow) html += `<span class="zone-badge-btn zone-badge-yellow" onclick="_filterCoachingByZone('yellow')">🟡 Yellow &nbsp;<strong>${yellow}</strong></span>`;
+      if(green) html += `<span class="zone-badge-btn zone-badge-green" onclick="_filterCoachingByZone('green')">🟢 Green &nbsp;<strong>${green}</strong></span>`;
+      if(persistentRed) html += `<span class="zone-badge-btn zone-badge-persistent" onclick="_filterCoachingByZone('persistent')">🚨 Persistent Red &nbsp;<strong>${persistentRed}</strong></span>`;
     }
+    summaryBadges.innerHTML = html;
   }
 }
 
@@ -5439,7 +5419,7 @@ function _renderCoachingPrecisionTable(fleetData, weeks){
   });
 
   tbody.innerHTML = rows.map(r => {
-    const precPct = r.precision !== null ? (r.precision * 100).toFixed(1) + '%' : '—';
+    const precPct = r.precision !== null ? r.precision.toFixed(1) + '%' : '—';
     const zone = r.precision !== null ? _precisionZone(r.precision) : null;
     const precClass = zone === 'red' ? 'prec-red' : zone === 'yellow' ? 'prec-yellow' : zone === 'green' ? 'prec-green' : '';
     const precHTML = zone ? `<span class="${precClass}">${precPct}</span>` : `<span style="color:#aaa">${precPct}</span>`;
@@ -5511,13 +5491,9 @@ function _filterCoachingByZone(zone){
   tbody.closest('.card')?.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
-function _renderCoachingRiskMatrix(riskResults, latestWeek){
-  // Legacy stub - now calls precision table
-  // This is called from renderCoachingTab with the old signature
-}
 
 function openCoachingDrillModal(fleet, weeks){
-  const r = coachingRiskScores.get(fleet);
+  const fleetEntry = (currentCoachingData || []).find(f => f.fleet === fleet);
   const backdrop = document.getElementById('coaching-drill-backdrop');
   const titleEl  = document.getElementById('coaching-drill-title');
   const subEl    = document.getElementById('coaching-drill-sub');
@@ -5525,68 +5501,67 @@ function openCoachingDrillModal(fleet, weeks){
   if(!backdrop || !bodyEl) return;
 
   titleEl.textContent = `Fleet Deep Dive: ${fleet}`;
-  subEl.textContent   = r ? `Risk Score: ${r.riskScore} | Level: ${_riskLevelDisplay(r.riskLevel)}` : '';
+  const sortedWeeks = (weeks || []).slice().sort();
+  const latestWeek = sortedWeeks[sortedWeeks.length - 1];
+  const wm = fleetEntry && fleetEntry.weekMap;
+  const latestData = wm ? (wm.get ? wm.get(latestWeek) : wm[latestWeek]) : null;
+  const currPrec = latestData && latestData.total > 0 ? precisionExFov(latestData.valid, latestData.total, latestData.fov) : null;
+  subEl.textContent = currPrec !== null ? `Current Precision: ${currPrec.toFixed(1)}% | Zone: ${_precisionZone(currPrec).toUpperCase()}` : '';
 
   let html = '';
 
-  // 6-Week Precision Trend
-  if(r && r.weekMap && weeks.length > 0){
-    const weekPrecs = weeks.map(w => {
-      const m = r.weekMap.get(w);
-      return m ? precisionExFov(m.valid, m.total, m.fov) : null;
+  // Precision Trend
+  if(wm && weeks.length > 0){
+    const weekPrecs = sortedWeeks.map(w => {
+      const m = wm.get ? wm.get(w) : wm[w];
+      return m && m.total > 0 ? precisionExFov(m.valid, m.total, m.fov) : null;
     });
     html += `<div class="coaching-drill-section">
-      <h4>📈 Precision Trend (${weeks.length} Weeks)</h4>
+      <h4>📈 Precision Trend (${sortedWeeks.length} Week${sortedWeeks.length!==1?'s':''})</h4>
       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; padding:8px 0;">`;
-    for(let i=0;i<weeks.length;i++){
+    for(let i=0;i<sortedWeeks.length;i++){
       const p = weekPrecs[i];
       const ht = p !== null ? Math.max(4, Math.round(p)) : 4;
       const cls = p === null ? '#eee' : p < 25 ? '#e74c3c' : p < 50 ? '#e67e22' : p < 60 ? '#f1c40f' : '#27ae60';
       html += `<div style="text-align:center; flex:1; min-width:40px;">
         <div style="font-size:11px; color:#7f8c8d; margin-bottom:2px;">${p !== null ? p.toFixed(1)+'%' : 'N/A'}</div>
         <div style="height:${ht}px; background:${cls}; border-radius:4px 4px 0 0;"></div>
-        <div style="font-size:10px; color:#7f8c8d; margin-top:4px; white-space:nowrap;">${weeks[i].replace(/^[0-9]{4}-/,'')}</div>
+        <div style="font-size:10px; color:#7f8c8d; margin-top:4px; white-space:nowrap;">${sortedWeeks[i].replace(/^[0-9]{4}-/,'')}</div>
       </div>`;
     }
     html += `</div></div>`;
   }
 
-  // Key Issues
-  if(r){
-    const precLabel = r.currPrec !== null ? `${r.currPrec.toFixed(1)}%` : 'N/A';
-    const precSeverity = r.precScore >= 40 ? '— CRITICAL' : r.precScore >= 20 ? '— WARNING' : '— OK';
+  // Precision Summary
+  if(fleetEntry && wm){
+    const streak = _computeStreakData(wm, sortedWeeks);
+    let totalValid = 0, totalFov = 0, totalAll = 0;
+    sortedWeeks.forEach(w => {
+      const m = wm.get ? wm.get(w) : wm[w];
+      if(m){ totalValid += m.valid || 0; totalFov += m.fov || 0; totalAll += m.total || 0; }
+    });
     html += `<div class="coaching-drill-section">
-      <h4>🔍 Key Issues Breakdown</h4>
+      <h4>📊 Precision Summary</h4>
       <div style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
-        <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#f8f9fa; border-radius:8px; flex-direction:column;">
-          <div style="display:flex; justify-content:space-between;">
-            <span>Precision: <strong>${precLabel}</strong> (${r.precScore} pts)</span>
-            <span style="color:${r.precScore>=40?'#e74c3c':r.precScore>=20?'#f39c12':'#27ae60'}; font-weight:950;">${precSeverity}</span>
-          </div>
-          <div style="margin-left:20px; font-size:12px; color:#7f8c8d; margin-top:3px;">
-            → ${r.currPrec!==null?`${r.currPrec.toFixed(1)}%`:'N/A'} of events (excluding FOV) are valid fatigue alerts
-          </div>
+        <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#f8f9fa; border-radius:8px;">
+          <span>Current Precision</span>
+          <strong>${currPrec !== null ? `<span class="${currPrec<50?'prec-red':currPrec<60?'prec-yellow':'prec-green'}">${currPrec.toFixed(1)}%</span>` : 'N/A'}</strong>
         </div>
-        <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#f8f9fa; border-radius:8px; flex-direction:column;">
-          <div style="display:flex; justify-content:space-between;">
-            <span>FOV Rate: <strong>${r.fovRate.toFixed(1)}%</strong> (${r.fovScore} pts)</span>
-            <span style="color:${r.fovScore>=25?'#e74c3c':r.fovScore>=15?'#f39c12':'#27ae60'}; font-weight:950;">${r.fovScore>=25?'— HIGH':r.fovScore>=15?'— ELEVATED':'— OK'}</span>
-          </div>
-          <div style="margin-left:20px; font-size:12px; color:#7f8c8d; margin-top:3px;">
-            → ${r.fovRate.toFixed(1)}% of valid alerts are FOV exceptions (camera/sensor issues)
-          </div>
+        <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#f8f9fa; border-radius:8px;">
+          <span>Zone Streak</span>
+          <strong>${_streakBadgeHTML(streak)}</strong>
         </div>
-        <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#f8f9fa; border-radius:8px; flex-direction:column;">
-          <div style="display:flex; justify-content:space-between;">
-            <span>Alert Trend: <strong>${r.trendPct !== null ? (r.trendPct>0?'+':'')+r.trendPct.toFixed(1)+'%' : 'N/A'}</strong> (${r.trendScore} pts)</span>
-            <span style="color:${r.trendScore>=15?'#e74c3c':r.trendScore>=10?'#f39c12':'#27ae60'}; font-weight:950;">${r.trendScore>=15?'— WORSENING':r.trendScore>=5?'— SLIGHT INCREASE':'— STABLE/IMPROVING'}</span>
-          </div>
-          <div style="margin-left:20px; font-size:12px; color:#7f8c8d; margin-top:3px;">
-            → Valid fatigue alerts ${r.trendPct!==null?(r.trendPct>0?'increased':r.trendPct<0?'decreased':'remained stable'):'changed'} ${r.trendPct!==null?`${Math.abs(r.trendPct).toFixed(1)}%`:'N/A'} vs previous period
-          </div>
+        <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#f8f9fa; border-radius:8px;">
+          <span>Valid Fatigue (all selected weeks)</span>
+          <strong>${totalValid}</strong>
         </div>
-        <div style="padding:6px 10px; background:#eef2f5; border-radius:8px; font-weight:950;">
-          Total Risk Score: ${r.riskScore} / 100 → ${_riskLevelDisplay(r.riskLevel)}
+        <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#f8f9fa; border-radius:8px;">
+          <span>FOV Events (all selected weeks)</span>
+          <strong>${totalFov}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#f8f9fa; border-radius:8px;">
+          <span>Total Events (all selected weeks)</span>
+          <strong>${totalAll}</strong>
         </div>
       </div>
     </div>`;
@@ -5618,25 +5593,48 @@ function openCoachingDrillModal(fleet, weeks){
   backdrop.style.display = 'flex';
 }
 
+
 function closeCoachingDrillModal(){
   const bd = document.getElementById('coaching-drill-backdrop');
   if(bd) bd.style.display = 'none';
 }
 
 /* CSV Export Functions */
-function exportCoachingReportCSV(riskResults){
-  if(!riskResults || !riskResults.length){ alert('No data to export.'); return; }
-  const headers = ['Fleet','Risk Score','Precision','FOV Rate','Alert Trend','Score Breakdown','Status','Last Coaching Date'];
-  const rows = riskResults.map(r => {
-    const lastLog = coachingLog.filter(e=>e.fleet===r.fleet).sort((a,b)=>(b.date||'').localeCompare(a.date||''))[0];
+function exportCoachingReportCSV(){
+  const fleetData = currentCoachingData || [];
+  if(!fleetData.length){ alert('No data to export. Upload CSV(s) and select weeks first.'); return; }
+  const weeks = Array.from(selectedWeeks).sort();
+  const latestWeek = weeks[weeks.length - 1];
+  const headers = ['Fleet','Precision %','Zone','WoW Δ','Streak','Valid Fatigue','FOV Events','Last Coaching Date'];
+  const rows = fleetData.map(fd => {
+    const wm = fd.weekMap;
+    const wd = wm ? (wm.get ? wm.get(latestWeek) : wm[latestWeek]) : null;
+    const prec = wd && wd.total > 0 ? precisionExFov(wd.valid, wd.total, wd.fov) : null;
+    const prevWeek = weeks.length >= 2 ? weeks[weeks.length - 2] : null;
+    let wowDelta = '';
+    if(prevWeek && prec !== null){
+      const wd2 = wm ? (wm.get ? wm.get(prevWeek) : wm[prevWeek]) : null;
+      if(wd2 && wd2.total > 0){
+        const prevPrec = precisionExFov(wd2.valid, wd2.total, wd2.fov);
+        const d = prec - prevPrec;
+        wowDelta = (d > 0 ? '+' : '') + d.toFixed(1) + '%';
+      }
+    }
+    const streak = _computeStreakData(wm, weeks);
+    let totalValid = 0, totalFov = 0;
+    weeks.forEach(w => {
+      const m = wm ? (wm.get ? wm.get(w) : wm[w]) : null;
+      if(m){ totalValid += m.valid || 0; totalFov += m.fov || 0; }
+    });
+    const lastLog = coachingLog.filter(e=>e.fleet===fd.fleet).sort((a,b)=>(b.date||'').localeCompare(a.date||''))[0];
     return [
-      r.fleet,
-      r.riskScore,
-      r.currPrec !== null ? r.currPrec.toFixed(1)+'%' : 'N/A',
-      r.fovRate.toFixed(1)+'%',
-      r.trendPct !== null ? (r.trendPct>0?'+':'')+r.trendPct.toFixed(1)+'%' : 'N/A',
-      `P:${r.precScore}+F:${r.fovScore}+T:${r.trendScore}`,
-      r.riskLevel,
+      fd.fleet,
+      prec !== null ? prec.toFixed(1) + '%' : 'N/A',
+      prec !== null ? _precisionZone(prec).toUpperCase() : 'N/A',
+      wowDelta,
+      streak.count > 0 ? `${streak.zone.toUpperCase()} ${streak.count}wks` : '—',
+      totalValid,
+      totalFov,
       lastLog ? lastLog.date : ''
     ];
   });
@@ -5646,7 +5644,7 @@ function exportCoachingReportCSV(riskResults){
 function exportCriticalFleetCSV(){
   if(!persistentRedZoneFleets || !persistentRedZoneFleets.length){ alert('No critical fleets to export.'); return; }
   const weeks = Array.from(selectedWeeks).sort();
-  const headers = ['Fleet','Weeks Analyzed','Weeks Below 25%','Current Precision','Avg Precision','Risk Score','Escalation Status'];
+  const headers = ['Fleet','Weeks Analyzed','Weeks Below 25%','Current Precision','Avg Precision','Escalation Status'];
   const rows = persistentRedZoneFleets.map(f => {
     const weeksAnalyzed = weeks.filter(w => f.weekMap && f.weekMap.get(w)).length;
     const avgPrec = (() => {
@@ -5662,7 +5660,6 @@ function exportCriticalFleetCSV(){
       f.weeksBelowThreshold,
       f.currPrec !== null ? f.currPrec.toFixed(1)+'%' : 'N/A',
       avgPrec !== null ? avgPrec.toFixed(1)+'%' : 'N/A',
-      f.riskScore,
       escalStatus
     ];
   });
@@ -5883,7 +5880,7 @@ document.addEventListener('keydown', (e) => {
 
 // Export buttons
 document.getElementById('coaching-export-report-btn')?.addEventListener('click', () => {
-  exportCoachingReportCSV(Array.from(coachingRiskScores.values()));
+  exportCoachingReportCSV();
 });
 document.getElementById('coaching-export-critical-btn')?.addEventListener('click', () => {
   exportCriticalFleetCSV();
