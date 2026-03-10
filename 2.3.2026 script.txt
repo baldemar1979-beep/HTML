@@ -5202,7 +5202,8 @@ function _riskLevelClass(level){ return ''; }
 
 function computeCoachingRiskScores(fleetData, weeks, aggregateMode){
   // Legacy stub — now we use _renderCoachingPrecisionTable directly
-  // Still populates coachingRiskScores for drill modal compatibility
+  // Still populates coachingRiskScores for drill modal compatibility.
+  // TODO: Remove once openCoachingDrillModal is refactored to use fleetData directly.
   const results = [];
   const lastWeek = weeks[weeks.length-1];
   for(const f of fleetData){
