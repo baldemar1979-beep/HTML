@@ -794,6 +794,10 @@
                 FOV Misaligned Events
               </label>
               <label style="display:flex; align-items:center; cursor:pointer; font-size:13px;">
+                <input type="checkbox" id="trends-vol-sensor-covered" checked style="margin-right:6px; cursor:pointer;">
+                FOV Sensor Covered Events (Verified)
+              </label>
+              <label style="display:flex; align-items:center; cursor:pointer; font-size:13px;">
                 <input type="checkbox" id="trends-vol-valid" checked style="margin-right:6px; cursor:pointer;">
                 Valid Alerts
               </label>
@@ -3161,24 +3165,28 @@ function renderFovTab(eventsGlobal){
     }
   });
 
-  const nMisaligned = rowsAll.filter(r => r.hasMisaligned).length;
-  const nSensorCovered = rowsAll.filter(r => r.hasSensorCovered).length;
+  // Apply Proximity Risk filter before computing KPIs so KPIs reflect the current selection
+  let rows = rowsAll;
+  if(selectedGapBuckets.size < 4) rows = rowsAll.filter(r => selectedGapBuckets.has(r.gap_bucket));
 
-  const nRed = rowsAll.filter(r => r.gap_bucket === 'red').length;
-  const nYellow = rowsAll.filter(r => r.gap_bucket === 'yellow').length;
-  const nGreen = rowsAll.filter(r => r.gap_bucket === 'green').length;
-  const nNA = rowsAll.filter(r => r.gap_bucket === 'na').length;
+  const nMisaligned = rows.filter(r => r.hasMisaligned).length;
+  const nSensorCovered = rows.filter(r => r.hasSensorCovered).length;
+
+  const nRed = rows.filter(r => r.gap_bucket === 'red').length;
+  const nYellow = rows.filter(r => r.gap_bucket === 'yellow').length;
+  const nGreen = rows.filter(r => r.gap_bucket === 'green').length;
+  const nNA = rows.filter(r => r.gap_bucket === 'na').length;
 
   const pctExposureOver24 = (() => {
-    const secs = rowsAll.map(r => r.exposure_seconds).filter(Number.isFinite);
+    const secs = rows.map(r => r.exposure_seconds).filter(Number.isFinite);
     return secs.length ? Math.round((secs.filter(x => x > 86400).length / secs.length) * 100) : 0;
   })();
 
-  const fixedLikely = rowsAll.filter(r => r.last_verified_after_latest_fov).length;
+  const fixedLikely = rows.filter(r => r.last_verified_after_latest_fov).length;
 
   // Median gap and exposure per type (exclude N/A gap rows), single pass
   const misGapSecs = [], sensorGapSecs = [], misExpSecs = [], sensorExpSecs = [];
-  for(const r of rowsAll){
+  for(const r of rows){
     const hasGap = r.gap_bucket !== 'na' && Number.isFinite(r.gap_seconds);
     if(r.hasMisaligned){
       if(hasGap) misGapSecs.push(r.gap_seconds);
@@ -3225,9 +3233,6 @@ function renderFovTab(eventsGlobal){
     `<div class="kpi-row">${row2}</div>` +
     `<div class="kpi-row">${row3}</div>` +
     `<div class="kpi-row">${row4}</div>`;
-
-  let rows = rowsAll;
-  if(selectedGapBuckets.size < 4) rows = rowsAll.filter(r => selectedGapBuckets.has(r.gap_bucket));
 
   if(!rows.length){
     nodata.style.display = 'block';
@@ -3773,17 +3778,20 @@ function renderTrendsTab(eventsGlobal) {
     }
     const weekMap = fleetWeekMap.get(fleet);
     if (!weekMap.has(week)) {
-      weekMap.set(week, { total: 0, valid: 0, fov: 0, fovMisaligned: 0, otherEvents: 0 });
+      weekMap.set(week, { total: 0, valid: 0, fov: 0, fovMisaligned: 0, fovSensorCovered: 0, otherEvents: 0 });
     }
     
     const metrics = weekMap.get(week);
     const { isFov, isValidFatigue } = classifyEvent(e);
     const isFovMis = isFovMisaligned(e);
+    const isFovSensorCov = isFov && ((e.classification || '').toLowerCase().includes('sensor covered') || (e.event_type || '').toLowerCase().includes('sensor covered'));
+    const isVerified = (e.confirmation || '').toLowerCase().trim() === 'verified';
     
     metrics.total++;
     if (isValidFatigue) metrics.valid++;
     if (isFov) metrics.fov++;
     if (isFovMis) metrics.fovMisaligned++;
+    if (isFovSensorCov && isVerified) metrics.fovSensorCovered++;
     // otherEvents = total events excluding FOV and Valid alerts
     if (!isFov && !isValidFatigue) metrics.otherEvents++;
 
@@ -3841,6 +3849,8 @@ function renderTrendsTab(eventsGlobal) {
     const currFov = currMetrics.fov;
     const prevValid = prevMetrics.valid;
     const currValid = currMetrics.valid;
+    const prevFovSensorCovered = prevMetrics.fovSensorCovered || 0;
+    const currFovSensorCovered = currMetrics.fovSensorCovered || 0;
     
     volumeChanges.push({
       fleet,
@@ -3851,7 +3861,9 @@ function renderTrendsTab(eventsGlobal) {
       prevFov,
       currFov,
       prevValid,
-      currValid
+      currValid,
+      prevFovSensorCovered,
+      currFovSensorCovered
     });
   }
 
@@ -4153,7 +4165,7 @@ function renderTrendsTab(eventsGlobal) {
         <td style="font-size:20px; text-align:center;">${trophy || d.rank}</td>
         <td><strong>${esc(d.fleet)}</strong></td>
         <td class="num">${d.prevPrec.toFixed(1)}%</td>
-        <td class="num"><strong style="color:#f39c12; font-size:16px;">${d.currPrec.toFixed(1)}%</strong></td>
+        <td class="num"><strong style="color:${d.currPrec >= 60 ? '#27ae60' : d.currPrec >= 50 ? '#f39c12' : '#e74c3c'}; font-size:16px;">${d.currPrec.toFixed(1)}%</strong></td>
         <td class="num"><span class="chip ${deltaClass}" style="font-size:14px;">${deltaSign}${d.delta.toFixed(1)}%</span></td>
       </tr>
     `;
@@ -4213,6 +4225,7 @@ function renderTrendsTab(eventsGlobal) {
   const includeTotal = document.getElementById('trends-vol-total')?.checked ?? true;
   const includeFov = document.getElementById('trends-vol-fov')?.checked ?? true;
   const includeValid = document.getElementById('trends-vol-valid')?.checked ?? true;
+  const includeSensorCovered = document.getElementById('trends-vol-sensor-covered')?.checked ?? true;
   
   // Calculate deltas based on selected filters
   const volumeChangesWithDeltas = volumeChanges.map(d => {
@@ -4230,6 +4243,10 @@ function renderTrendsTab(eventsGlobal) {
     if (includeValid) {
       prevTotal += d.prevValid;
       currTotal += d.currValid;
+    }
+    if (includeSensorCovered) {
+      prevTotal += d.prevFovSensorCovered || 0;
+      currTotal += d.currFovSensorCovered || 0;
     }
     
     const volDelta = currTotal - prevTotal;
@@ -6309,7 +6326,7 @@ document.getElementById('csv-upload').addEventListener('change', async (e) => {
 });
 
 // Trends tab: Activity filter checkboxes
-['trends-vol-total', 'trends-vol-fov', 'trends-vol-valid'].forEach(id => {
+['trends-vol-total', 'trends-vol-fov', 'trends-vol-valid', 'trends-vol-sensor-covered'].forEach(id => {
   const checkbox = document.getElementById(id);
   if (checkbox) {
     checkbox.addEventListener('change', () => {
