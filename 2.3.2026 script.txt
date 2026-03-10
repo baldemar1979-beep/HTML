@@ -205,11 +205,6 @@
     .coaching-table-wrap { max-height:450px; overflow-y:auto; }
 
     /* ===== Enhanced Coaching Tab ===== */
-    .coaching-risk-urgent { background:#ffe5e5; color:#7b241c; }
-    .coaching-risk-high { background:#fff4cc; color:#7a5a00; }
-    .coaching-risk-medium { background:#fff3e0; color:#7a4500; }
-    .coaching-risk-low { background:#e3f2fd; color:#1a237e; }
-    .coaching-risk-good { background:#e6f7e6; color:#1e5631; }
     .coaching-alert-banner { border-radius:12px; padding:12px 16px; margin-bottom:12px; border-left:4px solid; }
     .coaching-alert-critical { background:#fff0f0; border-color:#e74c3c; }
     .coaching-alert-warning { background:#fffae6; border-color:#f39c12; }
@@ -222,12 +217,27 @@
     .coaching-filter-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px; padding:10px 12px; background:#f8f9fa; border-radius:10px; border:1px solid #eee; }
     .coaching-filter-label { font-size:13px; font-weight:950; color:#2c3e50; display:flex; align-items:center; gap:5px; cursor:pointer; }
     .coaching-week-info { font-size:13px; color:#34495e; }
-    .coaching-score-breakdown { font-size:11px; color:#7f8c8d; white-space:nowrap; }
-    .risk-row-urgent td { background:#ffe5e5 !important; }
-    .risk-row-high td { background:#fff4cc !important; }
-    .risk-row-medium td { background:#fff3e0 !important; }
-    .risk-row-low td { background:#e3f2fd !important; }
-    .risk-row-good td { background:#e6f7e6 !important; }
+    .prec-red { background:#ffe5e5; color:#7b241c; border-radius:6px; padding:2px 7px; font-weight:950; font-size:12px; }
+    .prec-yellow { background:#fff4cc; color:#7a5a00; border-radius:6px; padding:2px 7px; font-weight:950; font-size:12px; }
+    .prec-green { background:#e6f7e6; color:#1e5631; border-radius:6px; padding:2px 7px; font-weight:950; font-size:12px; }
+    .streak-badge { display:inline-block; border-radius:6px; padding:2px 7px; font-size:12px; font-weight:950; }
+    .zone-badge-btn { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:10px; font-size:13px; font-weight:950; cursor:pointer; border:2px solid transparent; transition:box-shadow 0.15s; user-select:none; }
+    .zone-badge-btn:hover { box-shadow:0 2px 8px rgba(0,0,0,0.15); }
+    .zone-badge-red { background:#ffe5e5; color:#7b241c; border-color:#e74c3c; }
+    .zone-badge-yellow { background:#fff4cc; color:#7a5a00; border-color:#f39c12; }
+    .zone-badge-green { background:#e6f7e6; color:#1e5631; border-color:#27ae60; }
+    .zone-badge-persistent { background:#fff0f0; color:#7b241c; border-color:#c0392b; }
+    .alert-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 12px; font-size: 13px; font-weight: 1000;
+      cursor: pointer; border: 2px solid transparent; transition: box-shadow 0.15s;
+      user-select: none;
+    }
+    .alert-badge:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .alert-badge-red { background: #ffe5e5; color: #7b241c; border-color: #e74c3c; }
+    .alert-badge-yellow { background: #fff4cc; color: #7a5a00; border-color: #f39c12; }
+    .alert-badge-green { background: #e6f7e6; color: #1e5631; border-color: #27ae60; }
+    .alert-badge-persistent { background: #fff0f0; color: #7b241c; border-color: #c0392b; }
     .coaching-drill-section { margin-bottom:16px; }
     .coaching-drill-section h4 { font-size:13px; font-weight:950; color:#2c3e50; margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid #eee; }
     .coaching-timeline-entry { border-left:3px solid #3498db; padding:8px 12px; margin-bottom:8px; background:#f8fafc; border-radius:0 8px 8px 0; }
@@ -375,6 +385,16 @@
 
     <!-- TAB 1: Fleet -->
     <div id="fleetTab" class="tabpage active">
+      <div id="fleet-precision-alert-strip" class="card" style="margin-bottom:14px; padding:12px 16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div style="font-size:13px; font-weight:950; color:#2c3e50;">🎯 Precision Alert Summary <span style="font-size:11px; font-weight:normal; color:#7f8c8d;">(based on selected weeks)</span></div>
+          <button class="btn" id="fleet-alert-coaching-link" style="font-size:12px;">🎯 Full Coaching View ↗</button>
+        </div>
+        <div id="fleet-alert-badges" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+          <span style="color:#7f8c8d; font-size:12px;">Upload CSV(s) to view precision alerts</span>
+        </div>
+        <div style="font-size:11px; color:#7f8c8d; margin-top:8px;">Click a badge to filter the fleet table below to that precision zone</div>
+      </div>
       <div class="section-title">Fleet Management</div>
 
       <div class="controls" style="margin-bottom:14px;">
@@ -468,6 +488,9 @@
 
       <div class="card">
         <h3>Vehicle-shifts (sortable)</h3>
+        <div style="margin-bottom:8px;">
+          <button class="btn" id="int-toggle-coords" type="button">Show Coordinates</button>
+        </div>
         <div class="subnote">
           A <strong>vehicle-shift</strong> is one vehicle on one calendar day in either <strong>Day (06:01–19:59)</strong> or <strong>Night (20:00–06:00)</strong>.
           <br/>
@@ -489,10 +512,10 @@
                 <th class="num sortable" data-icol="emails">Emails</th>
                 <th class="sortable" data-icol="cap_time">Last CAP Call</th>
                 <th class="sortable" data-icol="last_email_time">Last Email Time</th>
-                <th class="num sortable" data-icol="cap_lat">CAP Lat</th>
-                <th class="num sortable" data-icol="cap_lon">CAP Lon</th>
-                <th class="num sortable" data-icol="email_lat">Email Lat</th>
-                <th class="num sortable" data-icol="email_lon">Email Lon</th>
+                <th class="num sortable" data-icol="cap_lat" data-coord="true" style="display:none">CAP Lat</th>
+                <th class="num sortable" data-icol="cap_lon" data-coord="true" style="display:none">CAP Lon</th>
+                <th class="num sortable" data-icol="email_lat" data-coord="true" style="display:none">Email Lat</th>
+                <th class="num sortable" data-icol="email_lon" data-coord="true" style="display:none">Email Lon</th>
                 <th class="num sortable" data-icol="cap_to_email_miles">Cap→Email Miles</th>
               </tr>
             </thead>
@@ -506,6 +529,10 @@
     <!-- TAB 3: FOV -->
     <div id="fovTab" class="tabpage">
       <div class="section-title">FOV — Camera Misaligned &amp; Sensor Covered</div>
+      <div id="fov-wow-strip" class="card" style="margin-bottom:14px; padding:12px 16px;">
+        <div style="font-size:13px; font-weight:950; color:#2c3e50; margin-bottom:10px;">📊 FOV Week-over-Week Summary</div>
+        <div id="fov-wow-kpis" class="kpi-grid"></div>
+      </div>
 
       <div class="controls" style="margin-bottom:14px;">
         <div class="block small">
@@ -603,6 +630,34 @@
           </table>
           <div id="fov-nodata" class="no-data">Upload CSV(s) to view FOV exception rows</div>
         </div>
+      </div>
+
+      <!-- FOV Repeat Offenders (moved from Coaching tab) -->
+      <div class="card" style="margin-bottom:14px;">
+        <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">📷 FOV Repeat Offenders</h3>
+        <div style="color:#34495e; font-size:13px; margin-bottom:10px;">Fleets with FOV issues across 2+ selected weeks. Click a fleet row to expand vehicle detail. Click event counts to view evidence.</div>
+        <div class="coaching-filter-bar" style="margin-bottom:10px;">
+          <label class="coaching-filter-label" title="When checked: trend compares first-half vs second-half of all selected weeks. When unchecked: trend compares most-recent week vs previous week.">
+            <input type="checkbox" id="fov-trend-aggregate-toggle"> 📊 Aggregate Trend (all weeks)
+          </label>
+          <span style="font-size:12px; color:#7f8c8d;" id="fov-trend-mode-label">Mode: Present vs Previous Week</span>
+        </div>
+        <div class="table-wrap coaching-table-wrap">
+          <table id="coaching-fov-table">
+            <thead id="coaching-fov-thead"><tr>
+              <th class="sortable" data-cfov="fleet">Fleet</th>
+              <th class="num sortable" data-cfov="totalMis">📷 Misaligned</th>
+              <th class="num sortable" data-cfov="totalSen">🔲 Sensor Covered</th>
+              <th class="num sortable" data-cfov="totalWeeks">Total Weeks</th>
+              <th class="sortable" data-cfov="streak">Streak</th>
+              <th class="sortable" data-cfov="firstSeen">First Seen</th>
+              <th class="sortable" data-cfov="trend">Trend</th>
+              <th>Actions</th>
+            </tr></thead>
+            <tbody id="coaching-fov-tbody"></tbody>
+          </table>
+        </div>
+        <div id="coaching-fov-nodata" class="no-data">No FOV repeat offenders in selected period</div>
       </div>
     </div>
 
@@ -837,37 +892,27 @@
       <!-- Coaching Priority Matrix (Expandable) -->
       <div class="card" id="coaching-matrix-card" style="margin-bottom:14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
-          <h3 style="margin:0; color:#2c3e50; font-size:16px; font-weight:1000;">📊 Coaching Priority Matrix</h3>
+          <h3 style="margin:0; color:#2c3e50; font-size:16px; font-weight:1000;">📊 Fleet Precision Overview</h3>
           <div id="coaching-mode-indicator" style="font-size:12px; color:#7f8c8d;"></div>
           <button class="btn" id="coaching-collapse-matrix-btn" style="font-size:12px;">Collapse Summary ↑</button>
         </div>
         <div class="subnote" style="margin-bottom:10px;">
-          Risk score (0-100): Precision (0-50 pts) + FOV Rate (0-30 pts) + Valid Alert Trend (0-20 pts). Higher score = more urgent coaching needed.
-          <br/>
-          <strong>Note:</strong> FOV Rate is calculated as FOV events ÷ Valid Alerts × 100 (focuses on coachable events only).
+          Fleets sorted by Precision % ascending (worst performers first) by default. WoW Δ shows week-over-week change. Streak shows consecutive weeks in current precision zone.
         </div>
 
-        <!-- Risk Level Filters -->
-        <div class="coaching-filter-bar" id="coaching-risk-filters">
-          <span style="font-size:12px; font-weight:950; color:#7f8c8d; margin-right:4px;">FILTER:</span>
-          <label class="coaching-filter-label"><input type="checkbox" class="coaching-risk-cb" data-level="URGENT" checked> 🚨 URGENT</label>
-          <label class="coaching-filter-label"><input type="checkbox" class="coaching-risk-cb" data-level="HIGH" checked> ⚠️ HIGH</label>
-          <label class="coaching-filter-label"><input type="checkbox" class="coaching-risk-cb" data-level="MEDIUM" checked> ⚠️ MEDIUM</label>
-          <label class="coaching-filter-label"><input type="checkbox" class="coaching-risk-cb" data-level="LOW" checked> ℹ️ LOW</label>
-          <label class="coaching-filter-label"><input type="checkbox" class="coaching-risk-cb" data-level="GOOD" checked> ✅ GOOD</label>
-        </div>
+        <div id="coaching-zone-summary" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;"></div>
 
         <div class="table-wrap coaching-table-wrap">
           <table>
             <thead id="coaching-risk-thead">
               <tr>
                 <th class="sortable" data-crisk="fleet">Fleet</th>
-                <th class="num sortable" data-crisk="riskScore">Risk Score</th>
-                <th class="num sortable" data-crisk="currPrec">Precision</th>
-                <th class="num sortable" data-crisk="fovRate">FOV Rate</th>
-                <th class="num sortable" data-crisk="trendPct">Alert Trend</th>
-                <th>Score Breakdown</th>
-                <th class="sortable" data-crisk="riskLevel">Status</th>
+                <th class="num sortable" data-crisk="precision">Precision %</th>
+                <th class="num sortable" data-crisk="wowDelta">WoW Δ</th>
+                <th class="sortable" data-crisk="streak">Streak</th>
+                <th class="num sortable" data-crisk="validFatigue">Valid Fatigue</th>
+                <th class="num sortable" data-crisk="fovEvents">FOV Events</th>
+                <th class="sortable" data-crisk="lastCoached">Last Coached</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -899,38 +944,13 @@
         <div id="coaching-persistent-rz-nodata" class="no-data" style="display:none;">No fleets in persistent red zone</div>
       </div>
 
-      <!-- Section: FOV Repeat Offenders (collapsible fleet view) -->
-      <div class="card" style="margin-bottom:14px;">
-        <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">📷 FOV Repeat Offenders</h3>
-        <div style="color:#34495e; font-size:13px; margin-bottom:10px;">Fleets with FOV issues across 2+ selected weeks. Click a fleet row to expand vehicle detail. Click event counts to view evidence.</div>
-        <div class="coaching-filter-bar" style="margin-bottom:10px;">
-          <label class="coaching-filter-label" title="When checked: trend compares first-half vs second-half of all selected weeks. When unchecked: trend compares most-recent week vs previous week.">
-            <input type="checkbox" id="fov-trend-aggregate-toggle"> 📊 Aggregate Trend (all weeks)
-          </label>
-          <span style="font-size:12px; color:#7f8c8d;" id="fov-trend-mode-label">Mode: Present vs Previous Week</span>
-        </div>
-        <div class="table-wrap coaching-table-wrap">
-          <table id="coaching-fov-table">
-            <thead id="coaching-fov-thead"><tr>
-              <th class="sortable" data-cfov="fleet">Fleet</th>
-              <th class="num sortable" data-cfov="totalMis">📷 Misaligned</th>
-              <th class="num sortable" data-cfov="totalSen">🔲 Sensor Covered</th>
-              <th class="num sortable" data-cfov="totalWeeks">Total Weeks</th>
-              <th class="sortable" data-cfov="trend">Trend</th>
-              <th>Actions</th>
-            </tr></thead>
-            <tbody id="coaching-fov-tbody"></tbody>
-          </table>
-        </div>
-        <div id="coaching-fov-nodata" class="no-data">No FOV repeat offenders in selected period</div>
-      </div>
-
       <!-- Section: Coaching Action Log -->
       <div class="card" style="margin-bottom:14px;">
         <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">📝 Coaching Action Log</h3>
         <div style="color:#34495e; font-size:13px; margin-bottom:10px;">
           Track coaching actions taken with fleet partners. Stored locally in your browser. Use the 📝 Log buttons throughout this tab to add actions.
         </div>
+        <div id="coaching-overdue-banner" style="display:none; margin-bottom:10px;"></div>
         <div id="coaching-log-container"></div>
       </div>
     </div>
@@ -995,8 +1015,9 @@
               <span style="background:#fff4cc;color:#7a5a00;border-radius:4px;padding:1px 6px;font-size:12px;">Yellow</span>, or
               <span style="background:#e6f7e6;color:#1e5631;border-radius:4px;padding:1px 6px;font-size:12px;">Green</span>
               precision-zone fleets.</li>
-            <li><strong>Step 3 — Review Fleet Table:</strong> Columns are sortable. Click a fleet row to expand and see individual vehicles. Click any event count cell to open the Evidence Modal.</li>
-            <li><strong>Step 4 — Drill into Vehicle Detail:</strong> After expanding a fleet, each vehicle row shows event counts, precision %, and the firmware version (<code>Version</code> column) for that vehicle.</li>
+            <li><strong>Step 3 — Precision Alert Summary:</strong> The strip at the top of the Fleet Management tab shows how many fleets are in each precision zone (Red/Yellow/Green). Click a badge to filter the fleet table to that zone. Click "🎯 Full Coaching View ↗" to go directly to the Coaching tab.</li>
+             <li><strong>Step 4 — Review Fleet Table:</strong> Columns are sortable. Click a fleet row to expand and see individual vehicles. Click any event count cell to open the Evidence Modal.</li>
+            <li><strong>Step 5 — Drill into Vehicle Detail:</strong> After expanding a fleet, each vehicle row shows event counts, precision %, and the firmware version (<code>Version</code> column) for that vehicle.</li>
           </ol>
         </div>
       </div>
@@ -1043,6 +1064,8 @@
             <li><strong>Step 4 — Review FOV Summary KPIs:</strong> Cards show total FOV events, affected fleets, affected vehicles, and average Proximity Gap.</li>
             <li><strong>Step 5 — Review FOV Table:</strong> Rows are grouped by fleet and collapsed by default. Click a fleet row to expand vehicle detail. Proximity Gap and Exposure show fleet totals when collapsed. Click event count cells to open the Evidence Modal.</li>
             <li><strong>Step 6 — Identify Fixed Cameras:</strong> Rows with a green-highlighted <strong>Last Verified Fatigue</strong> indicate the camera has likely been corrected.</li>
+            <li><strong>Step 7 — FOV Week-over-Week Summary:</strong> The strip at the top of the FOV tab shows Total FOV Events, Fleets Affected, Vehicles Affected, and Persistent FOV Assets (appearing in 2+ weeks), with WoW delta chips.</li>
+            <li><strong>Step 8 — FOV Repeat Offenders:</strong> At the bottom of the FOV tab, fleets with FOV issues in 2+ selected weeks are listed with Streak (consecutive weeks present), First Seen week, and heatmap-colored per-week counts.</li>
           </ol>
         </div>
       </div>
@@ -1071,24 +1094,12 @@
         <div class="hint" style="margin-bottom:8px;">Purpose: Prioritize coaching efforts using risk scores (0–100), track actions, and identify persistent underperformers.</div>
         <div style="color:#34495e; font-size:13px; line-height:1.55;">
           <ol style="padding-left:18px; margin-top:6px;">
-            <li><strong>Step 1 — Understand Risk Scoring:</strong> Each fleet receives a composite risk score:
-              <ul style="padding-left:18px; margin-top:4px;">
-                <li>Precision score: 0–50 pts (lower precision = higher score; measures % of events that are valid fatigue alerts)</li>
-                <li>FOV Rate score: 0–30 pts (higher FOV rate = higher score; measures FOV exceptions as % of valid alerts)</li>
-                <li>Valid Alert Trend score: 0–20 pts (worsening trend = higher score; measures change in valid alerts vs previous period)</li>
-              </ul>
-            </li>
+            <li><strong>Step 1 — Fleet Precision Overview:</strong> Each fleet is listed by current Precision %, WoW change, and streak (consecutive weeks in current zone). Sort by Precision % to see worst performers first.</li>
             <li><strong>Step 2 — Toggle Aggregation Mode:</strong> Switch between <em>All Weeks</em> and <em>Latest Week</em> to adjust scoring context.</li>
-            <li><strong>Step 3 — Review Risk Level Distribution:</strong> Summary cards show fleet counts by level —
-              <span style="background:#ffe5e5;color:#7b241c;border-radius:4px;padding:1px 6px;font-size:12px;">URGENT</span>
-              <span style="background:#ffd6b3;color:#7a3a00;border-radius:4px;padding:1px 6px;font-size:12px;">HIGH</span>
-              <span style="background:#fff4cc;color:#7a5a00;border-radius:4px;padding:1px 6px;font-size:12px;">MEDIUM</span>
-              <span style="background:#dce9ff;color:#1a3a6b;border-radius:4px;padding:1px 6px;font-size:12px;">LOW</span>
-              <span style="background:#e6f7e6;color:#1e5631;border-radius:4px;padding:1px 6px;font-size:12px;">GOOD</span>
-            </li>
-            <li><strong>Step 4 — Review Coaching Priority Matrix:</strong> Sortable table of all fleets with risk score, level, precision %, and FOV rate. Filter by risk level to focus on specific groups.</li>
+            <li><strong>Step 3 — Precision Zone Summary badges:</strong> Badges at the top of the table show fleet counts by zone — 🔴 Red, 🟡 Yellow, 🟢 Green. Click to filter the table to that zone.</li>
+            <li><strong>Step 4 — Review Fleet Precision Overview table:</strong> Sortable table of all fleets with Precision %, WoW Δ, Streak, Valid Fatigue, and FOV Events. Sort by Precision % ascending to see worst performers first.</li>
             <li><strong>Step 5 — Review Persistent Red Zone Fleets:</strong> Fleets with &lt;25% precision across multiple weeks are flagged for escalation.</li>
-            <li><strong>Step 6 — Review FOV Repeat Offenders:</strong> Fleets with FOV issues in 2+ weeks are listed for targeted camera maintenance follow-up.</li>
+            <li><strong>FOV Repeat Offenders:</strong> This section has moved to the FOV tab for a unified FOV view.</li>
             <li><strong>Step 7 — Log Coaching Actions:</strong> Click the 📝 <strong>Log</strong> button on any fleet row to record: session date, coach name, session type, topics covered, notes, action items, and follow-up date.</li>
             <li><strong>Step 8 — Manage Coaching Logs:</strong> Use the coaching log section to export logs to CSV, import a previously exported CSV, or view, edit, and delete individual log entries.</li>
           </ol>
@@ -1140,7 +1151,7 @@
             <li><strong>Multi-Week Analysis:</strong> Select multiple Report Week checkboxes to enable Trends and Coaching tab analytics.</li>
             <li><strong>Drill Down:</strong> Start at fleet-level KPIs → expand fleet rows → click event counts for evidence details.</li>
             <li><strong>Use Precision Zones:</strong> Filter by <span style="background:#ffe5e5;color:#7b241c;border-radius:4px;padding:1px 5px;font-size:12px;">Red</span> / <span style="background:#fff4cc;color:#7a5a00;border-radius:4px;padding:1px 5px;font-size:12px;">Yellow</span> / <span style="background:#e6f7e6;color:#1e5631;border-radius:4px;padding:1px 5px;font-size:12px;">Green</span> to quickly identify fleets needing attention.</li>
-            <li><strong>Coaching Workflow:</strong> Review Coaching tab → prioritize by risk score → log actions → set follow-up dates.</li>
+            <li><strong>Coaching Workflow:</strong> Review Coaching tab → sort by Precision % ascending to see worst performers first → log actions → set follow-up dates.</li>
             <li><strong>Export Evidence:</strong> Click any clickable event count to open the Evidence Modal and download a CSV of those events.</li>
             <li><strong>Data Persistence:</strong> Data, filters, expanded rows, and coaching logs are saved automatically in browser <code>localStorage</code>.</li>
             <li><strong>Collapsible Sections:</strong> Collapse Controls sections you don't need to maximize table space.</li>
@@ -1159,7 +1170,7 @@
             <li><strong>No data showing:</strong> Check that you have selected at least one Report Week checkbox.</li>
             <li><strong>Empty FOV tab:</strong> FOV data requires <code>FOV exception</code> classifications in your CSV.</li>
             <li><strong>Trends not appearing:</strong> Trends require at least 2 weeks of data to calculate deltas.</li>
-            <li><strong>Coaching scores missing:</strong> Ensure you have selected weeks and the CSV contains all required fields.</li>
+            <li><strong>Coaching data missing:</strong> Ensure you have selected weeks and the CSV contains all required fields.</li>
             <li><strong>Filters not working:</strong> Click <strong>Reset Filters</strong> to restore defaults, then reapply your desired filters.</li>
             <li><strong>Clear all data:</strong> Click the <strong>Clear Data</strong> button to wipe all stored events and start fresh.</li>
             <li><strong>CSV format errors:</strong> Check the error message for specific column/parsing issues. Required columns: <code>event_id</code>, <code>vehicle</code>, <code>fleet</code>, <code>detection_time</code>, <code>classification</code>, <code>event_type</code>, <code>confirmation</code>.</li>
@@ -1422,8 +1433,8 @@ function uiSnapshot(){
     coachingFovSort,
     coachingFovTrendAggregate,
     coachingHighOnly: !!document.getElementById('coaching-high-only')?.checked,
-    coachingRiskFilters,
-    coachingRiskSort,
+    coachingPrecisionSort,
+    showIntCoords,
     coachingAggregateMode: !!document.getElementById('coaching-aggregate-toggle')?.checked
   };
 }
@@ -1512,14 +1523,8 @@ function applyUiSnapshot(s){
     const cb = document.getElementById('coaching-high-only');
     if(cb) cb.checked = s.coachingHighOnly;
   }
-  if(s.coachingRiskFilters && typeof s.coachingRiskFilters === 'object'){
-    coachingRiskFilters = { ...coachingRiskFilters, ...s.coachingRiskFilters };
-    document.querySelectorAll('.coaching-risk-cb').forEach(cb => {
-      const level = cb.getAttribute('data-level');
-      if(level && level in coachingRiskFilters) cb.checked = coachingRiskFilters[level];
-    });
-  }
-  if(s.coachingRiskSort) coachingRiskSort = s.coachingRiskSort;
+  if(s.coachingPrecisionSort) coachingPrecisionSort = s.coachingPrecisionSort;
+  if(typeof s.showIntCoords === 'boolean'){ showIntCoords = s.showIntCoords; _applyIntCoordsVisibility(); }
   if(typeof s.coachingAggregateMode === 'boolean'){
     const tog = document.getElementById('coaching-aggregate-toggle');
     if(tog) tog.checked = s.coachingAggregateMode;
@@ -1594,10 +1599,10 @@ let fovRowByKey = new Map();
 let intRowByKey = new Map();
 
 let coachingLog = [];  // persisted in LS_COACHING
-let coachingRiskScores = new Map(); // fleet → risk score object
+let coachingRiskScores = new Map(); // fleet → risk score object (kept for drill modal compatibility)
 let persistentRedZoneFleets = []; // fleets <25% for multiple weeks
-let coachingRiskFilters = { URGENT:true, HIGH:true, MEDIUM:true, LOW:true, GOOD:true };
-let coachingRiskSort = { col:'riskScore', dir:'desc' };
+let coachingPrecisionSort = { col:'precision', dir:'asc' }; // worst first by default
+let showIntCoords = false;
 let coachingMatrixCollapsed = false;
 
 let modalRowsCache = [];
@@ -2591,6 +2596,7 @@ function renderFleetTable(fleets, vehicles){
   const tbody = document.getElementById('tbody');
   const nodata = document.getElementById('nodata');
   tbody.innerHTML = '';
+  _renderFleetAlertBadges();
 
   if(!rawEvents.length){
     nodata.style.display = 'block';
@@ -2916,10 +2922,10 @@ function renderInterventionsTab(eventsGlobal){
         <td class="num">${emailsCell}</td>
         <td>${esc(r.cap_time)}</td>
         <td>${esc(r.last_email_time)}</td>
-        <td class="num">${fmtNum(r.cap_lat)}</td>
-        <td class="num">${fmtNum(r.cap_lon)}</td>
-        <td class="num">${fmtNum(r.email_lat)}</td>
-        <td class="num">${fmtNum(r.email_lon)}</td>
+        <td class="num" data-coord="true">${fmtNum(r.cap_lat)}</td>
+        <td class="num" data-coord="true">${fmtNum(r.cap_lon)}</td>
+        <td class="num" data-coord="true">${fmtNum(r.email_lat)}</td>
+        <td class="num" data-coord="true">${fmtNum(r.email_lon)}</td>
         <td class="num">${fmtMiles(r.cap_to_email_miles)}</td>
       </tr>
     `;
@@ -3163,6 +3169,10 @@ function renderFovTab(eventsGlobal){
 
   tbody.innerHTML = '';
   kpis.innerHTML = '';
+
+  const _weeks = Array.from(selectedWeeks);
+  _renderFovWowStrip(eventsGlobal, _weeks);
+  _renderCoachingFovRepeatOffenders(eventsGlobal, _weeks);
 
   if(!rawEvents.length){
     nodata.style.display = 'block';
@@ -4724,7 +4734,18 @@ function _buildCoachingFovFleetData(eventsGlobal, weeks, aggregateMode){
     // Combined trend for sort key: worsening > stable > improving
     const trendOrder = { worsening: 2, stable: 1, improving: 0 };
     const trend = trendOrder[trendMis] >= trendOrder[trendSen] ? trendMis : trendSen;
-    result.push({ fleet, totalMis, totalSen, totalWeeks: fd.allWeeks.size, trend, trendMis, trendSen, vehicles: fd.vehicles });
+    // Compute streak (consecutive most-recent weeks present)
+    let streak = 0;
+    for(let i = sortedWks.length - 1; i >= 0; i--){
+      const w = sortedWks[i];
+      const hasMis = Array.from(fd.vehicles.values()).some(vd => (vd.misWkMap.get(w)||0) > 0);
+      const hasSen = Array.from(fd.vehicles.values()).some(vd => (vd.senWkMap.get(w)||0) > 0);
+      if(hasMis || hasSen) streak++;
+      else break;
+    }
+    // First seen = earliest week present
+    const firstSeen = sortedWks.length ? sortedWks[0] : null;
+    result.push({ fleet, totalMis, totalSen, totalWeeks: fd.allWeeks.size, trend, trendMis, trendSen, vehicles: fd.vehicles, streak, firstSeen });
   }
   result.sort((a,b) => (b.totalMis+b.totalSen) - (a.totalMis+a.totalSen) || a.fleet.localeCompare(b.fleet));
   return result;
@@ -4794,11 +4815,16 @@ function _renderCoachingFovRepeatOffenders(eventsGlobal, weeks){
       : '—';
     // Fleet row — only 📷 FOV nav button in Actions
     const fovNavBtn = `<button class="btn coaching-nav-btn" data-nav-tab="fovTab" style="font-size:11px;padding:4px 8px;" title="View FOV data">📷 FOV</button>`;
+    const streakEmoji = fd.streak >= 4 ? '🔴' : '🟡';
+    const streakBadge = fd.streak > 0 ? `<span class="streak-badge" style="background:${fd.streak >= 4 ? '#ffe5e5' : '#fff4cc'};color:${fd.streak >= 4 ? '#7b241c' : '#7a5a00'};">${streakEmoji} ${fd.streak}wks</span>` : '—';
+    const firstSeenHTML = fd.firstSeen ? `<span style="font-size:12px;color:#555;">${esc(fd.firstSeen)}</span>` : '—';
     rows.push(`<tr class="fleet-row coaching-fov-fleet-row" data-fov-fleet="${esc(fd.fleet)}" style="cursor:pointer;">
       <td><span style="display:flex;align-items:center;gap:8px;">${expandIcon}<strong>${esc(fd.fleet)}</strong></span></td>
       <td class="num">${misTot}</td>
       <td class="num">${senTot}</td>
       <td class="num"><span class="chip chip-red">${fd.totalWeeks} wk${fd.totalWeeks!==1?'s':''}</span></td>
+      <td>${streakBadge}</td>
+      <td>${firstSeenHTML}</td>
       <td>${_coachingFovTrendChip(fd.trendMis, fd.trendSen)}</td>
       <td><div class="coaching-actions">${fovNavBtn}</div></td>
     </tr>`);
@@ -4807,17 +4833,28 @@ function _renderCoachingFovRepeatOffenders(eventsGlobal, weeks){
       const allWks = new Set([...vd.misWkMap.keys(), ...vd.senWkMap.keys()]);
       if(allWks.size < 2) continue;
       const buildHorizCells = (wkMap) => {
-        const pairs = weeks.filter(w => wkMap.has(w)).map(w => `${w.replace(/^\d{4}-/,'')}: ${wkMap.get(w)}`);
-        if(!pairs.length) return '—';
+        const presentWeeks = weeks.filter(w => wkMap.has(w));
+        if(!presentWeeks.length) return '—';
+        const chips = presentWeeks.map(w => {
+          const count = wkMap.get(w) || 0;
+          let style = '';
+          if(count === 0){ style = 'background:#f8f9fa;color:#aaa;'; }
+          else if(count <= 2){ style = 'background:#ffe5e5;color:#7b241c;'; }
+          else if(count <= 9){ style = 'background:#ffb3b3;color:#7b241c;'; }
+          else { style = 'background:#e74c3c;color:#fff;'; }
+          return `<span style="display:inline-block;border-radius:4px;padding:1px 5px;margin:1px;font-size:11px;${style}">${w.replace(/^\d{4}-/,'')}: ${count}</span>`;
+        });
         const lines = [];
-        for(let i = 0; i < pairs.length; i += 6) lines.push(pairs.slice(i, i+6).join(' &nbsp;'));
-        return `<span style="font-size:12px;line-height:1.7;white-space:nowrap;">${lines.join('<br>')}</span>`;
+        for(let i = 0; i < chips.length; i += 6) lines.push(chips.slice(i, i+6).join(''));
+        return `<span style="font-size:12px;line-height:1.9;white-space:normal;">${lines.join('<br>')}</span>`;
       };
       const csvBtn = `<button class="btn coaching-fov-csv-btn" data-fleet="${esc(fd.fleet)}" data-vehicle="${esc(vehicle)}" style="font-size:11px;padding:3px 7px;" title="Download evidence CSV for this vehicle">📄 CSV</button>`;
       rows.push(`<tr class="asset-row coaching-fov-vehicle-row${isExpanded?' visible':''}" data-fov-fleet="${esc(fd.fleet)}">
         <td style="padding-left:40px;color:#7f8c8d;">└─ ${esc(vehicle)}</td>
         <td class="num">${buildHorizCells(vd.misWkMap)}</td>
         <td class="num">${buildHorizCells(vd.senWkMap)}</td>
+        <td></td>
+        <td></td>
         <td></td>
         <td>${_coachingFovTrendChip(vd.trendMis, vd.trendSen)}</td>
         <td>${csvBtn}</td>
@@ -4843,7 +4880,139 @@ function toggleCoachingFovFleet(fleetName){
   schedulePersist();
 }
 
+function _renderFleetAlertBadges(){
+  const badgesEl = document.getElementById('fleet-alert-badges');
+  if(!badgesEl) return;
+  if(!fleetAggByName || !fleetAggByName.size){
+    badgesEl.innerHTML = '<span style="color:#7f8c8d; font-size:12px;">Upload CSV(s) to view precision alerts</span>';
+    return;
+  }
+  let red = 0, yellow = 0, green = 0;
+  fleetAggByName.forEach((agg) => {
+    const total = agg.total || 0;
+    const valid = agg.valid || 0;
+    const fov = agg.fov || 0;
+    if(total === 0) return;
+    const p = precisionExFov(valid, total, fov);
+    if(p < 0.50) red++;
+    else if(p < 0.60) yellow++;
+    else green++;
+  });
+  const persistentRed = (persistentRedZoneFleets || []).length;
+
+  let html = '';
+  html += `<span class="alert-badge alert-badge-red" onclick="_fleetAlertBadgeClick('red')">🔴 Red (&lt;50%) — ${red} fleet${red !== 1 ? 's' : ''}</span>`;
+  html += `<span class="alert-badge alert-badge-yellow" onclick="_fleetAlertBadgeClick('yellow')">🟡 Yellow (50–59%) — ${yellow} fleet${yellow !== 1 ? 's' : ''}</span>`;
+  html += `<span class="alert-badge alert-badge-green" onclick="_fleetAlertBadgeClick('green')">🟢 Green (≥60%) — ${green} fleet${green !== 1 ? 's' : ''}</span>`;
+  if(persistentRed > 0){
+    html += `<span class="alert-badge alert-badge-persistent" onclick="_fleetAlertBadgeClick('persistent')">🚨 Persistent Red — ${persistentRed} fleet${persistentRed !== 1 ? 's' : ''}</span>`;
+  }
+  badgesEl.innerHTML = html;
+}
+
+function _fleetAlertBadgeClick(zone){
+  document.querySelectorAll('.zone-checkbox').forEach(cb => {
+    if(cb.dataset.zone === 'all'){
+      cb.checked = false;
+    } else {
+      cb.checked = (cb.dataset.zone === zone) || (zone === 'persistent' && cb.dataset.zone === 'red');
+    }
+  });
+  // If nothing matched, check all
+  const anyChecked = Array.from(document.querySelectorAll('.zone-checkbox')).some(c => c.checked);
+  if(!anyChecked){
+    const allCb = document.querySelector('.zone-checkbox[data-zone="all"]');
+    if(allCb) allCb.checked = true;
+  }
+  renderAll();
+  document.getElementById('fleetTab')?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function _renderFovWowStrip(eventsGlobal, weeks){
+  const el = document.getElementById('fov-wow-kpis');
+  if(!el) return;
+  const sortedWeeks = (weeks || []).slice().sort();
+  if(sortedWeeks.length < 2){
+    el.innerHTML = '<div style="color:#7f8c8d; font-size:13px; padding:8px 0;">Select 2+ weeks to view WoW summary</div>';
+    return;
+  }
+  const latestWeek = sortedWeeks[sortedWeeks.length - 1];
+  const prevWeek = sortedWeeks[sortedWeeks.length - 2];
+  const fovEvents = eventsGlobal || [];
+
+  const isFov = e => (e.eventType || e.event_type || '').toLowerCase().includes('fov') || (e.fovType || '').length > 0 || isFovMisaligned(e);
+
+  const latestFov = fovEvents.filter(e => e.fileWeek === latestWeek && isFov(e));
+  const prevFov = fovEvents.filter(e => e.fileWeek === prevWeek && isFov(e));
+
+  const latestTotal = latestFov.length;
+  const prevTotal = prevFov.length;
+  const latestFleets = new Set(latestFov.map(e => e.fleet)).size;
+  const prevFleets = new Set(prevFov.map(e => e.fleet)).size;
+  const latestVehicles = new Set(latestFov.map(e => e.vehicle || e.assetId || '')).size;
+  const prevVehicles = new Set(prevFov.map(e => e.vehicle || e.assetId || '')).size;
+
+  // Persistent: vehicles appearing in 2+ selected weeks
+  const vehicleWeeks = new Map();
+  sortedWeeks.forEach(w => {
+    const wFov = fovEvents.filter(e => e.fileWeek === w && isFov(e));
+    new Set(wFov.map(e => e.vehicle || e.assetId || '')).forEach(v => {
+      if(!vehicleWeeks.has(v)) vehicleWeeks.set(v, new Set());
+      vehicleWeeks.get(v).add(w);
+    });
+  });
+  const persistentCount = Array.from(vehicleWeeks.values()).filter(s => s.size >= 2).length;
+
+  function deltaChip(curr, prev){
+    const d = curr - prev;
+    if(d === 0) return '<span style="background:#eee;color:#555;border-radius:4px;padding:1px 5px;font-size:11px;">→ 0</span>';
+    if(d > 0) return `<span style="background:#ffe5e5;color:#7b241c;border-radius:4px;padding:1px 5px;font-size:11px;">↑ +${d}</span>`;
+    return `<span style="background:#e6f7e6;color:#1e5631;border-radius:4px;padding:1px 5px;font-size:11px;">↓ ${d}</span>`;
+  }
+
+  el.innerHTML = `
+    <div class="kpi"><div class="k">Total FOV Events (${esc(latestWeek)})</div><div class="v">${latestTotal} ${deltaChip(latestTotal, prevTotal)}</div></div>
+    <div class="kpi"><div class="k">Fleets Affected</div><div class="v">${latestFleets} ${deltaChip(latestFleets, prevFleets)}</div></div>
+    <div class="kpi"><div class="k">Vehicles Affected</div><div class="v">${latestVehicles} ${deltaChip(latestVehicles, prevVehicles)}</div></div>
+    <div class="kpi"><div class="k">Persistent FOV Assets (2+ wks)</div><div class="v">${persistentCount}</div></div>
+  `;
+}
+
+function _toggleIntCoords(){
+  showIntCoords = !showIntCoords;
+  const btn = document.getElementById('int-toggle-coords');
+  if(btn) btn.textContent = showIntCoords ? 'Hide Coordinates' : 'Show Coordinates';
+  _applyIntCoordsVisibility();
+  schedulePersist();
+}
+
+function _applyIntCoordsVisibility(){
+  const disp = showIntCoords ? '' : 'none';
+  document.querySelectorAll('#interventionsTab thead th[data-coord]').forEach(th => th.style.display = disp);
+  document.querySelectorAll('#int-body td[data-coord]').forEach(td => td.style.display = disp);
+}
+
+function _renderCoachingOverdueBanner(){
+  const el = document.getElementById('coaching-overdue-banner');
+  if(!el) return;
+  const today = new Date().toISOString().split('T')[0];
+  const overdue = coachingLog.filter(l => l.followup && !l.complete && l.followup < today);
+  if(!overdue.length){
+    el.style.display = 'none';
+    el.innerHTML = '';
+    return;
+  }
+  const chips = overdue.map(l => {
+    const due = l.followup;
+    return `<span style="background:#ffe5e5;color:#7b241c;border-radius:6px;padding:2px 8px;font-size:12px;cursor:pointer;margin:2px;" onclick="openCoachingModal('${esc(l.fleet)}', '${esc(l.id || '')}')">${esc(l.fleet)} (due ${esc(due)})</span>`;
+  }).join(' ');
+  el.style.display = 'block';
+  el.style.cssText = 'display:block; background:#fff4cc; border-left:4px solid #f39c12; border-radius:10px; padding:10px 14px; font-size:13px; color:#7a5a00; margin-bottom:10px;';
+  el.innerHTML = `⚠️ ${overdue.length} overdue follow-up${overdue.length !== 1 ? 's' : ''} — ${chips}`;
+}
+
 function renderCoachingActionLog(){
+  _renderCoachingOverdueBanner();
   const container = document.getElementById('coaching-log-container');
   if(!container) return;
   if(!coachingLog.length){
@@ -4967,7 +5136,7 @@ function renderCoachingTab(eventsGlobal){
 
   currentCoachingData = fleetData;
 
-  // New risk-based dashboard
+  // New risk-based dashboard (legacy for persistent red zone)
   const aggregateMode = !!document.getElementById('coaching-aggregate-toggle')?.checked;
   const riskResults = computeCoachingRiskScores(fleetData, weeks, aggregateMode);
 
@@ -4981,7 +5150,7 @@ function renderCoachingTab(eventsGlobal){
 
   _renderCoachingSummaryDashboard(riskResults, weeks);
   _renderPersistentRedZoneAlert(riskResults, weeks);
-  _renderCoachingRiskMatrix(riskResults, latestWeek);
+  _renderCoachingPrecisionTable(fleetData, weeks);
   _renderCoachingPriorityMatrix(fleetData, latestWeek);
   _renderCoachingFovRepeatOffenders(eventsGlobal, weeks);
   renderCoachingActionLog();
@@ -4991,129 +5160,57 @@ function renderCoachingTab(eventsGlobal){
    SECTION: Enhanced Coaching Tab — Risk Scoring & Dashboard
 ======================================================================================= */
 
-function _computeRiskPrecisionScore(prec){
-  if(prec === null) return 0;
-  if(prec < 20) return 50;
-  if(prec < 30) return 40;
-  if(prec < 40) return 30;
-  if(prec < 50) return 20;
-  if(prec < 60) return 10;
-  return 0;
+function _precisionZone(p){
+  if(p < 0.50) return 'red';
+  if(p < 0.60) return 'yellow';
+  return 'green';
 }
-function _computeRiskFovScore(fovRate){
-  if(fovRate >= 30) return 30;
-  if(fovRate >= 20) return 25;
-  if(fovRate >= 15) return 20;
-  if(fovRate >= 10) return 15;
-  if(fovRate >= 5) return 10;
-  return 5;
-}
-function _computeRiskTrendScore(trendPct){
-  if(trendPct === null) return 0;
-  if(trendPct >= 20) return 20;
-  if(trendPct >= 10) return 15;
-  if(trendPct >= 5) return 10;
-  if(trendPct > 0) return 5;
-  return 0;
-}
-function _riskLevelFromScore(score){
-  if(score >= 80) return 'URGENT';
-  if(score >= 60) return 'HIGH';
-  if(score >= 40) return 'MEDIUM';
-  if(score >= 20) return 'LOW';
-  return 'GOOD';
-}
-function _riskLevelDisplay(level){
-  switch(level){
-    case 'URGENT': return '🚨 URGENT';
-    case 'HIGH':   return '⚠️ HIGH';
-    case 'MEDIUM': return '⚠️ MEDIUM';
-    case 'LOW':    return 'ℹ️ LOW';
-    case 'GOOD':   return '✅ GOOD';
-    default: return level;
+
+function _computeStreakData(weekMap, allWeeks){
+  const sorted = allWeeks.slice().sort();
+  if(!sorted.length) return { count:0, zone:'green' };
+  let streak = 0;
+  let streakZone = null;
+  for(let i = sorted.length - 1; i >= 0; i--){
+    const w = sorted[i];
+    const wd = weekMap[w] || weekMap.get ? (weekMap.get ? weekMap.get(w) : weekMap[w]) : weekMap[w];
+    if(!wd) break;
+    const total = (wd.total || 0);
+    const valid = (wd.valid || 0);
+    const fov = (wd.fov || 0);
+    if(total === 0) break;
+    const p = precisionExFov(valid, total, fov);
+    const zone = _precisionZone(p);
+    if(streakZone === null) streakZone = zone;
+    if(zone !== streakZone) break;
+    streak++;
   }
+  return { count: streak, zone: streakZone || 'green' };
 }
-function _riskLevelClass(level){
-  switch(level){
-    case 'URGENT': return 'coaching-risk-urgent';
-    case 'HIGH':   return 'coaching-risk-high';
-    case 'MEDIUM': return 'coaching-risk-medium';
-    case 'LOW':    return 'coaching-risk-low';
-    case 'GOOD':   return 'coaching-risk-good';
-    default: return '';
-  }
+
+function _streakBadgeHTML(streak){
+  if(!streak || !streak.count) return '<span style="color:#aaa">—</span>';
+  const emoji = streak.zone === 'red' ? '🔴' : streak.zone === 'yellow' ? '🟡' : '🟢';
+  const bg = streak.zone === 'red' ? '#ffe5e5' : streak.zone === 'yellow' ? '#fff4cc' : '#e6f7e6';
+  const col = streak.zone === 'red' ? '#7b241c' : streak.zone === 'yellow' ? '#7a5a00' : '#1e5631';
+  return `<span class="streak-badge" style="background:${bg};color:${col};">${emoji} ${streak.count} wk${streak.count !== 1 ? 's' : ''}</span>`;
 }
-function _riskRowClass(level){
-  switch(level){
-    case 'URGENT': return 'risk-row-urgent';
-    case 'HIGH':   return 'risk-row-high';
-    case 'MEDIUM': return 'risk-row-medium';
-    case 'LOW':    return 'risk-row-low';
-    case 'GOOD':   return 'risk-row-good';
-    default: return '';
-  }
-}
+
+// Keep legacy stubs for drill modal compatibility
+function _riskLevelDisplay(level){ return level; }
+function _riskLevelClass(level){ return ''; }
 
 function computeCoachingRiskScores(fleetData, weeks, aggregateMode){
+  // Legacy stub — now we use _renderCoachingPrecisionTable directly
+  // Still populates coachingRiskScores for drill modal compatibility
   const results = [];
   const lastWeek = weeks[weeks.length-1];
-  const prevWeek = weeks.length > 1 ? weeks[weeks.length-2] : null;
-  const firstWeek = weeks[0];
-
   for(const f of fleetData){
     if(!f.weekMap) continue;
-
-    let prec, fovRate, trendPct;
-
-    if(aggregateMode){
-      // Aggregate: average precision, total FOV/total, W1->W6 valid alerts trend
-      let totalValid=0, totalAll=0, totalFov=0;
-      let firstWkM = f.weekMap.get(firstWeek);
-      let lastWkM  = f.weekMap.get(lastWeek);
-      for(const m of f.weekMap.values()){ totalValid+=m.valid; totalAll+=m.total; totalFov+=m.fov; }
-      prec = precisionExFov(totalValid, totalAll, totalFov);
-      fovRate = totalValid>0 ? (totalFov/totalValid*100) : 0;  // FOV as % of valid alerts
-      if(firstWkM && lastWkM && firstWkM.valid > 0){
-        trendPct = ((lastWkM.valid - firstWkM.valid) / firstWkM.valid) * 100;
-      } else {
-        trendPct = null;
-      }
-    } else {
-      // 2-week: current week precision/FOV, prev->curr trend
-      const currM = f.weekMap.get(lastWeek);
-      const prevM = prevWeek ? f.weekMap.get(prevWeek) : null;
-      prec = currM ? precisionExFov(currM.valid, currM.total, currM.fov) : null;
-      fovRate = currM && currM.valid>0 ? (currM.fov/currM.valid*100) : 0;  // FOV as % of valid alerts
-      if(currM && prevM && prevM.valid > 0){
-        trendPct = ((currM.valid - prevM.valid) / prevM.valid) * 100;
-      } else {
-        trendPct = null;
-      }
-    }
-
-    const pScore = _computeRiskPrecisionScore(prec);
-    const fScore = _computeRiskFovScore(fovRate);
-    const tScore = _computeRiskTrendScore(trendPct);
-    const total  = pScore + fScore + tScore;
-    const level  = _riskLevelFromScore(total);
-
-    results.push({
-      fleet: f.fleet,
-      riskScore: total,
-      precScore: pScore,
-      fovScore: fScore,
-      trendScore: tScore,
-      currPrec: prec,
-      fovRate,
-      trendPct,
-      riskLevel: level,
-      weekMap: f.weekMap,
-      weeksInRed: f.weeksInRed,
-      weeksInYellow: f.weeksInYellow,
-      delta: f.delta
-    });
+    const currM = f.weekMap.get(lastWeek);
+    const prec = currM ? precisionExFov(currM.valid, currM.total, currM.fov) : null;
+    results.push({ fleet: f.fleet, currPrec: prec, weekMap: f.weekMap, riskScore: 0, riskLevel: 'GOOD', delta: f.delta });
   }
-
   coachingRiskScores = new Map(results.map(r => [r.fleet, r]));
   return results;
 }
@@ -5267,65 +5364,155 @@ function _renderPersistentRedZoneAlert(riskResults, weeks){
     </tr>`).join('');
 }
 
-function _renderCoachingRiskMatrix(riskResults, latestWeek){
+function _renderCoachingPrecisionTable(fleetData, weeks){
   const tbody = document.getElementById('coaching-risk-tbody');
   const nodata = document.getElementById('coaching-risk-nodata');
   if(!tbody) return;
-
-  // Apply filters
-  const filtered = riskResults.filter(r => coachingRiskFilters[r.riskLevel]);
-
-  // Sort
-  const col = coachingRiskSort.col;
-  const dir = coachingRiskSort.dir;
-  const riskLevelOrder = { URGENT:4, HIGH:3, MEDIUM:2, LOW:1, GOOD:0 };
-  const sorted = [...filtered].sort((a,b) => {
-    if(col === 'fleet') return dir==='asc' ? a.fleet.localeCompare(b.fleet) : b.fleet.localeCompare(a.fleet);
-    if(col === 'riskLevel'){
-      const av = riskLevelOrder[a.riskLevel]??-1;
-      const bv = riskLevelOrder[b.riskLevel]??-1;
-      if(av===bv) return a.fleet.localeCompare(b.fleet);
-      return dir==='asc' ? (av-bv) : (bv-av);
-    }
-    const av = (a[col] === null || a[col] === undefined) ? (dir==='asc'?Infinity:-Infinity) : Number(a[col]);
-    const bv = (b[col] === null || b[col] === undefined) ? (dir==='asc'?Infinity:-Infinity) : Number(b[col]);
-    if(av===bv) return a.fleet.localeCompare(b.fleet);
-    return dir==='asc' ? (av-bv) : (bv-av);
-  });
-
-  if(!sorted.length){
+  if(!fleetData || !fleetData.length || !weeks || !weeks.length){
     tbody.innerHTML = '';
-    if(nodata){ nodata.style.display='block'; nodata.textContent = riskResults.length ? 'No fleets match the selected risk filters' : 'Upload CSV(s) to view coaching priority matrix'; }
+    if(nodata) nodata.style.display = '';
     return;
   }
-  if(nodata) nodata.style.display='none';
+  if(nodata) nodata.style.display = 'none';
 
-  tbody.innerHTML = sorted.map(r => {
-    const precDisp = r.currPrec !== null ? `<span class="prec-cell ${precisionClass(r.currPrec)}">${r.currPrec.toFixed(1)}%</span>` : 'N/A';
-    const fovDisp  = `${r.fovRate.toFixed(1)}%`;
-    const trendDisp = r.trendPct !== null
-      ? (r.trendPct > 0 ? `<span class="chip chip-red">↑ +${r.trendPct.toFixed(1)}%</span>` : r.trendPct < 0 ? `<span class="chip chip-green">↓ ${r.trendPct.toFixed(1)}%</span>` : `<span class="chip chip-na">→ 0.0%</span>`)
-      : '<span style="color:#7f8c8d;">—</span>';
-    const breakdown = `<span class="coaching-score-breakdown">P:${r.precScore} + F:${r.fovScore} + T:${r.trendScore}</span>`;
-    const statusBadge = `<span class="badge ${_riskLevelClass(r.riskLevel)}">${_riskLevelDisplay(r.riskLevel)}</span>`;
-    const logCount = coachingLog.filter(e => e.fleet === r.fleet).length;
-    const logBtnLabel = logCount > 0 ? `View Log (${logCount})` : '📝 Log';
-    const actionBtns = `<div class="coaching-actions">
-      <button class="btn coaching-log-btn" data-fleet="${esc(r.fleet)}" data-week="${esc(latestWeek)}" data-entry-id="" style="font-size:11px;padding:4px 8px;">${logBtnLabel}</button>
-      <button class="btn coaching-risk-drill-btn" data-fleet="${esc(r.fleet)}" style="font-size:11px;padding:4px 8px;">🔍 Drill</button>
-      ${_coachingNavBtns(r.fleet)}
-    </div>`;
-    return `<tr class="${_riskRowClass(r.riskLevel)}">
-      <td><strong>${esc(r.fleet)}</strong></td>
-      <td class="num"><strong>${r.riskScore}</strong></td>
-      <td class="num">${precDisp}</td>
-      <td class="num">${fovDisp}</td>
-      <td class="num">${trendDisp}</td>
-      <td>${breakdown}</td>
-      <td>${statusBadge}</td>
-      <td>${actionBtns}</td>
+  const sortedWeeks = weeks.slice().sort();
+  const latestWeek = sortedWeeks[sortedWeeks.length - 1];
+  const prevWeek = sortedWeeks.length >= 2 ? sortedWeeks[sortedWeeks.length - 2] : null;
+
+  // Build rows
+  let rows = fleetData.map(fd => {
+    const wd = fd.weekMap.get ? fd.weekMap.get(latestWeek) : fd.weekMap[latestWeek];
+    const wdObj = wd || {};
+    const total = wdObj.total || 0;
+    const valid = wdObj.valid || 0;
+    const fov = wdObj.fov || 0;
+    const precision = total > 0 ? precisionExFov(valid, total, fov) : null;
+
+    let wowDelta = null;
+    if(prevWeek){
+      const wdPrev = fd.weekMap.get ? fd.weekMap.get(prevWeek) : fd.weekMap[prevWeek];
+      const wdPrevObj = wdPrev || {};
+      const prevTotal = wdPrevObj.total || 0;
+      const prevValid = wdPrevObj.valid || 0;
+      const prevFov = wdPrevObj.fov || 0;
+      const prevPrec = prevTotal > 0 ? precisionExFov(prevValid, prevTotal, prevFov) : null;
+      if(precision !== null && prevPrec !== null) wowDelta = precision - prevPrec;
+    }
+
+    const streak = _computeStreakData(fd.weekMap, weeks);
+
+    // Valid fatigue and FOV events across all selected weeks
+    let totalValid = 0, totalFov = 0;
+    weeks.forEach(w => {
+      const wk = fd.weekMap.get ? (fd.weekMap.get(w) || {}) : (fd.weekMap[w] || {});
+      totalValid += wk.valid || 0;
+      totalFov += wk.fov || 0;
+    });
+
+    // Last coached
+    const logs = coachingLog.filter(l => l.fleet === fd.fleet).sort((a,b) => b.date > a.date ? 1 : -1);
+    const lastCoached = logs.length ? logs[0].date : null;
+
+    return { fleet: fd.fleet, precision, wowDelta, streak, totalValid, totalFov, lastCoached };
+  });
+
+  // Sort
+  const { col, dir } = coachingPrecisionSort;
+  rows.sort((a, b) => {
+    let av, bv;
+    if(col === 'fleet'){ av = a.fleet; bv = b.fleet;
+      if(av < bv) return dir === 'asc' ? -1 : 1;
+      if(av > bv) return dir === 'asc' ? 1 : -1;
+      return 0;
+    }
+    else if(col === 'precision'){ av = a.precision ?? -1; bv = b.precision ?? -1; }
+    else if(col === 'wowDelta'){ av = a.wowDelta ?? -999; bv = b.wowDelta ?? -999; }
+    else if(col === 'streak'){ av = a.streak.count; bv = b.streak.count; }
+    else if(col === 'validFatigue'){ av = a.totalValid; bv = b.totalValid; }
+    else if(col === 'fovEvents'){ av = a.totalFov; bv = b.totalFov; }
+    else if(col === 'lastCoached'){ av = a.lastCoached || ''; bv = b.lastCoached || ''; }
+    else { return 0; }
+    if(av < bv) return dir === 'asc' ? -1 : 1;
+    if(av > bv) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  tbody.innerHTML = rows.map(r => {
+    const precPct = r.precision !== null ? (r.precision * 100).toFixed(1) + '%' : '—';
+    const zone = r.precision !== null ? _precisionZone(r.precision) : null;
+    const precClass = zone === 'red' ? 'prec-red' : zone === 'yellow' ? 'prec-yellow' : zone === 'green' ? 'prec-green' : '';
+    const precHTML = zone ? `<span class="${precClass}">${precPct}</span>` : `<span style="color:#aaa">${precPct}</span>`;
+
+    let wowHTML = '<span style="color:#aaa">—</span>';
+    if(r.wowDelta !== null){
+      wowHTML = _coachingTrendArrow(r.wowDelta);
+    }
+
+    const streakHTML = _streakBadgeHTML(r.streak);
+    const lastCoachHTML = r.lastCoached ? `<span style="font-size:12px;color:#555;">${esc(r.lastCoached)}</span>` : `<span style="color:#aaa;font-size:12px;">Never</span>`;
+
+    return `<tr>
+      <td>${esc(r.fleet)}</td>
+      <td class="num">${precHTML}</td>
+      <td class="num">${wowHTML}</td>
+      <td>${streakHTML}</td>
+      <td class="num">${r.totalValid}</td>
+      <td class="num">${r.totalFov}</td>
+      <td>${lastCoachHTML}</td>
+      <td>${_coachingActionBtns(r.fleet, latestWeek)}</td>
     </tr>`;
   }).join('');
+
+  // Zone summary badges
+  _renderCoachingZoneSummary(rows);
+}
+
+function _renderCoachingZoneSummary(rows){
+  const el = document.getElementById('coaching-zone-summary');
+  if(!el) return;
+  let red = 0, yellow = 0, green = 0, persistentRed = 0;
+  rows.forEach(r => {
+    if(r.precision === null) return;
+    const zone = _precisionZone(r.precision);
+    if(zone === 'red') red++;
+    else if(zone === 'yellow') yellow++;
+    else green++;
+    // persistent red: streak >= 3 in red zone
+    if(zone === 'red' && r.streak.zone === 'red' && r.streak.count >= 3) persistentRed++;
+  });
+  let html = '';
+  if(red) html += `<button class="zone-badge-btn zone-badge-red" onclick="_filterCoachingByZone('red')">🔴 Red &nbsp;<strong>${red}</strong></button>`;
+  if(yellow) html += `<button class="zone-badge-btn zone-badge-yellow" onclick="_filterCoachingByZone('yellow')">🟡 Yellow &nbsp;<strong>${yellow}</strong></button>`;
+  if(green) html += `<button class="zone-badge-btn zone-badge-green" onclick="_filterCoachingByZone('green')">🟢 Green &nbsp;<strong>${green}</strong></button>`;
+  if(persistentRed) html += `<button class="zone-badge-btn zone-badge-persistent" onclick="_filterCoachingByZone('persistent')">🚨 Persistent Red &nbsp;<strong>${persistentRed}</strong></button>`;
+  el.innerHTML = html;
+}
+
+function _filterCoachingByZone(zone){
+  const tbody = document.getElementById('coaching-risk-tbody');
+  if(!tbody) return;
+  tbody.querySelectorAll('tr').forEach(tr => {
+    const precCell = tr.cells[1];
+    if(!precCell){ tr.style.display = ''; return; }
+    if(zone === 'red'){
+      tr.style.display = precCell.querySelector('.prec-red') ? '' : 'none';
+    } else if(zone === 'yellow'){
+      tr.style.display = precCell.querySelector('.prec-yellow') ? '' : 'none';
+    } else if(zone === 'green'){
+      tr.style.display = precCell.querySelector('.prec-green') ? '' : 'none';
+    } else if(zone === 'persistent'){
+      const streakCell = tr.cells[3];
+      tr.style.display = (streakCell && streakCell.textContent.includes('🔴')) ? '' : 'none';
+    } else {
+      tr.style.display = '';
+    }
+  });
+  tbody.closest('.card')?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function _renderCoachingRiskMatrix(riskResults, latestWeek){
+  // Legacy stub - now calls precision table
+  // This is called from renderCoachingTab with the old signature
 }
 
 function openCoachingDrillModal(fleet, weeks){
@@ -5566,34 +5753,22 @@ function _downloadCSV(rows, filename){
 
 /* Event listeners for new enhanced coaching tab elements */
 
-// Risk matrix sort
+// Precision table sort
 document.addEventListener('click', (e) => {
   const th = e.target.closest('#coaching-risk-thead th[data-crisk]');
   if(!th) return;
   const col = th.getAttribute('data-crisk');
   if(!col) return;
-  if(coachingRiskSort.col === col){
-    coachingRiskSort.dir = coachingRiskSort.dir === 'asc' ? 'desc' : 'asc';
+  if(coachingPrecisionSort.col === col){
+    coachingPrecisionSort.dir = coachingPrecisionSort.dir === 'asc' ? 'desc' : 'asc';
   } else {
-    coachingRiskSort.col = col;
-    coachingRiskSort.dir = col === 'fleet' ? 'asc' : 'desc';
+    coachingPrecisionSort.col = col;
+    coachingPrecisionSort.dir = col === 'fleet' ? 'asc' : 'desc';
   }
   clearSortClasses('#coaching-risk-thead th[data-crisk]');
-  setSortClass(th, coachingRiskSort.dir);
-  const riskArr = Array.from(coachingRiskScores.values());
-  const latestWeek = Array.from(selectedWeeks).sort().pop() || '';
-  _renderCoachingRiskMatrix(riskArr, latestWeek);
-  schedulePersist();
-});
-
-// Risk level filter checkboxes
-document.addEventListener('change', (e) => {
-  if(!e.target.classList.contains('coaching-risk-cb')) return;
-  const level = e.target.getAttribute('data-level');
-  if(level) coachingRiskFilters[level] = e.target.checked;
-  const riskArr = Array.from(coachingRiskScores.values());
-  const latestWeek = Array.from(selectedWeeks).sort().pop() || '';
-  _renderCoachingRiskMatrix(riskArr, latestWeek);
+  setSortClass(th, coachingPrecisionSort.dir);
+  const currentFleetData = currentCoachingData || [];
+  _renderCoachingPrecisionTable(currentFleetData, Array.from(selectedWeeks));
   schedulePersist();
 });
 
@@ -5603,14 +5778,6 @@ document.addEventListener('click', (e) => {
   if(!row) return;
   const level = row.getAttribute('data-risk-filter-level');
   if(!level) return;
-  // Set only this level checked
-  for(const k of Object.keys(coachingRiskFilters)) coachingRiskFilters[k] = (k === level);
-  document.querySelectorAll('.coaching-risk-cb').forEach(cb => {
-    cb.checked = (cb.getAttribute('data-level') === level);
-  });
-  const riskArr = Array.from(coachingRiskScores.values());
-  const latestWeek = Array.from(selectedWeeks).sort().pop() || '';
-  _renderCoachingRiskMatrix(riskArr, latestWeek);
   document.getElementById('coaching-matrix-card')?.scrollIntoView({behavior:'smooth'});
 });
 
@@ -5659,11 +5826,9 @@ document.getElementById('fov-trend-aggregate-toggle')?.addEventListener('change'
 
 
 document.getElementById('coaching-view-all-btn')?.addEventListener('click', () => {
-  for(const k of Object.keys(coachingRiskFilters)) coachingRiskFilters[k] = true;
-  document.querySelectorAll('.coaching-risk-cb').forEach(cb => { cb.checked = true; });
-  const riskArr = Array.from(coachingRiskScores.values());
-  const latestWeek = Array.from(selectedWeeks).sort().pop() || '';
-  _renderCoachingRiskMatrix(riskArr, latestWeek);
+  // Show all rows again (reset zone filter)
+  const tbody = document.getElementById('coaching-risk-tbody');
+  if(tbody) tbody.querySelectorAll('tr').forEach(tr => { tr.style.display = ''; });
   document.getElementById('coaching-matrix-card')?.scrollIntoView({behavior:'smooth'});
 });
 
@@ -5695,6 +5860,12 @@ document.addEventListener('click', (e) => {
   const fleet = btn.getAttribute('data-fleet');
   openCoachingDrillModal(fleet, Array.from(selectedWeeks).sort());
 });
+
+// Coords toggle
+document.getElementById('int-toggle-coords')?.addEventListener('click', _toggleIntCoords);
+
+// Fleet alert coaching link
+document.getElementById('fleet-alert-coaching-link')?.addEventListener('click', () => setActiveTab('coachingTab'));
 
 // Close drill modal
 document.getElementById('coaching-drill-close')?.addEventListener('click', closeCoachingDrillModal);
