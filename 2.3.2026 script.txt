@@ -4770,6 +4770,24 @@ function _coachingFovTrendChip(trendMis, trendSen){
   return `<span style="display:flex;gap:4px;flex-wrap:wrap;">${parts.join('')}</span>`;
 }
 
+function _fovSparkline(wkMap, weeks, trend){
+  const vals = weeks.map(w => wkMap.get(w) || 0);
+  if(!weeks.length || vals.every(v => v === 0)) return '<span style="color:#aaa;font-size:11px;">—</span>';
+  const W = 80, H = 24, PAD = 3;
+  const max = Math.max(...vals, 1);
+  const n = vals.length;
+  const cx = (i) => (PAD + (n < 2 ? (W - 2*PAD) / 2 : i * (W - 2*PAD) / (n - 1))).toFixed(1);
+  const cy = (v) => (H - PAD - (v / max) * (H - 2*PAD)).toFixed(1);
+  const color = trend === 'worsening' ? '#e74c3c' : trend === 'improving' ? '#27ae60' : '#7f8c8d';
+  const pts = vals.map((v, i) => `${cx(i)},${cy(v)}`).join(' ');
+  const dots = vals.map((v, i) => v > 0
+    ? `<circle cx="${cx(i)}" cy="${cy(v)}" r="2" fill="${color}"><title>${esc(weeks[i].replace(/^\d{4}-/, ''))}: ${v}</title></circle>`
+    : ''
+  ).join('');
+  const tip = esc(weeks.map((w, i) => `${w.replace(/^\d{4}-/, '')}: ${vals[i]}`).join(', '));
+  return `<svg width="${W}" height="${H}" style="vertical-align:middle;overflow:visible;" title="${tip}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg>`;
+}
+
 function _renderCoachingFovRepeatOffenders(eventsGlobal, weeks){
   const tbody = document.getElementById('coaching-fov-tbody');
   const nodata = document.getElementById('coaching-fov-nodata');
@@ -4816,11 +4834,6 @@ function _renderCoachingFovRepeatOffenders(eventsGlobal, weeks){
     const emoji = s >= 4 ? '🔴' : '🟡';
     return `<span class="streak-badge" style="background:${s >= 4 ? '#ffe5e5' : '#fff4cc'};color:${s >= 4 ? '#7b241c' : '#7a5a00'};">${emoji} ${s}wk${s!==1?'s':''}</span>`;
   };
-  const _trendChip = (trend, label) => {
-    if(trend === 'worsening') return `<span class="chip chip-red" title="${label}">↓ ${label}</span>`;
-    if(trend === 'improving') return `<span class="chip chip-green" title="${label}">↑ ${label}</span>`;
-    return `<span class="chip chip-na" title="${label}">→ ${label}</span>`;
-  };
 
   const rows = [];
   for(const fd of fleetData){
@@ -4832,15 +4845,22 @@ function _renderCoachingFovRepeatOffenders(eventsGlobal, weeks){
     const senTot = fd.totalSen > 0
       ? `<span class="link coaching-fov-count-btn" data-fleet="${esc(fd.fleet)}" data-type="sen" style="font-weight:bold;">${fd.totalSen}</span>`
       : '—';
+    // Aggregate weekly totals across all vehicles for fleet-level sparklines
+    const fleetMisMap = new Map();
+    const fleetSenMap = new Map();
+    for(const vd of fd.vehicles.values()){
+      for(const [w, c] of vd.misWkMap) fleetMisMap.set(w, (fleetMisMap.get(w)||0) + c);
+      for(const [w, c] of vd.senWkMap) fleetSenMap.set(w, (fleetSenMap.get(w)||0) + c);
+    }
     rows.push(`<tr class="fleet-row coaching-fov-fleet-row" data-fov-fleet="${esc(fd.fleet)}" style="cursor:pointer;">
       <td><span style="display:flex;align-items:center;gap:8px;">${expandIcon}<strong>${esc(fd.fleet)}</strong></span></td>
       <td class="num"><span class="chip chip-red">${fd.totalWeeks} wk${fd.totalWeeks!==1?'s':''}</span></td>
       <td class="num">${misTot}</td>
       <td>${_streakBadge(fd.streakMis)}</td>
-      <td>${_trendChip(fd.trendMis, '📷 Misaligned')}</td>
+      <td>${_fovSparkline(fleetMisMap, weeks, fd.trendMis)}</td>
       <td class="num">${senTot}</td>
       <td>${_streakBadge(fd.streakSen)}</td>
-      <td>${_trendChip(fd.trendSen, '🔲 Sensor Covered')}</td>
+      <td>${_fovSparkline(fleetSenMap, weeks, fd.trendSen)}</td>
     </tr>`);
     // Vehicle rows — horizontal week layout, max 6 per line; chips are clickable
     for(const [vehicle, vd] of fd.vehicles.entries()){
@@ -4875,10 +4895,10 @@ function _renderCoachingFovRepeatOffenders(eventsGlobal, weeks){
         <td></td>
         <td class="num">${buildHorizCells(vd.misWkMap, 'mis')}</td>
         <td></td>
-        <td>${_trendChip(vd.trendMis, '📷 Misaligned')}</td>
+        <td>${_fovSparkline(vd.misWkMap, weeks, vd.trendMis)}</td>
         <td class="num">${buildHorizCells(vd.senWkMap, 'sen')}</td>
         <td></td>
-        <td>${_trendChip(vd.trendSen, '🔲 Sensor Covered')}</td>
+        <td>${_fovSparkline(vd.senWkMap, weeks, vd.trendSen)}</td>
       </tr>`);
     }
   }
