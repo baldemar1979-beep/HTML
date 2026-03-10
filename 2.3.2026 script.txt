@@ -4872,11 +4872,9 @@ function _renderFleetAlertBadges(){
   }
   let red = 0, yellow = 0, green = 0;
   fleetAggByName.forEach((agg) => {
-    const total = agg.total || 0;
-    const valid = agg.valid || 0;
-    const fov = agg.fov || 0;
+    const total = agg.total_events || 0;
     if(total === 0) return;
-    const p = precisionExFov(valid, total, fov);
+    const p = agg.precision;
     const zone = _precisionZone(p);
     if(zone === 'red') red++;
     else if(zone === 'yellow') yellow++;
@@ -5982,8 +5980,8 @@ function renderAll(){
   const netAgg = aggregateFleetVehicle(currentNetworkFilteredEvents);
   const viewAgg = aggregateFleetVehicle(currentFilteredEvents);
 
-  // Option B: Stats row is NETWORK-only, with Total Events KPI toggle (Include FOV)
-  renderTopStatsFromNetworkEvents(currentNetworkFilteredEvents, netAgg.fleets, netAgg.vehicles);
+  // Fleet KPIs and table both use classification-filtered view
+  renderTopStatsFromNetworkEvents(currentFilteredEvents, viewAgg.fleets, viewAgg.vehicles);
 
   // Fleet table uses classification-filtered view
   renderFleetTable(viewAgg.fleets, viewAgg.vehicles);
