@@ -980,7 +980,7 @@
               <span style="background:#fff4cc;color:#7a5a00;border-radius:4px;padding:1px 6px;font-size:12px;">Yellow</span>,
               <span style="background:#e0e0e0;color:#555;border-radius:4px;padding:1px 6px;font-size:12px;">Grey</span>, or
               <span style="background:#f4f4f4;color:#888;border-radius:4px;padding:1px 6px;font-size:12px;">NA</span>.</li>
-            <li><strong>Step 5 — Review Vehicle-Shifts Table:</strong> Rows are grouped at the fleet level. Click a fleet row to expand and see all individual vehicle-shift sub-rows. Coordinates (CAP Lat/Lon, Email Lat/Lon) are always visible. Sortable columns include Fleet, Verified Valid Fatigue, Calls, and Emails.</li>
+            <li><strong>Step 5 — Review Vehicle-Shifts Table:</strong> Rows are grouped at the fleet level. Each fleet row shows aggregated totals (Verified VF, Calls, Emails) and the most-recent CAP/Email times and coordinates. Click a fleet row to expand and see all individual vehicle-shift sub-rows. Coordinates (CAP Lat/Lon, Email Lat/Lon) are always visible. Sortable columns include Fleet, Verified Valid Fatigue, Calls, and Emails.</li>
             <li><strong>Step 6 — Download Evidence:</strong> In any expanded fleet, click Verified Valid Fatigue, Calls, or Emails counts to open the Evidence Modal and download a CSV of those events.</li>
           </ol>
         </div>
@@ -2841,13 +2841,44 @@ function renderInterventionsTab(eventsGlobal){
   const fleetMap = new Map();
   for(const r of allRows){
     if(!fleetMap.has(r.fleet)){
-      fleetMap.set(r.fleet, { fleet: r.fleet, verified_total: 0, calls: 0, emails: 0, shifts: [] });
+      fleetMap.set(r.fleet, {
+        fleet: r.fleet,
+        verified_total: 0,
+        calls: 0,
+        emails: 0,
+        cap_time_ms: null,
+        cap_time: 'N/A',
+        last_email_time_ms: null,
+        last_email_time: 'N/A',
+        cap_lat: null,
+        cap_lon: null,
+        email_lat: null,
+        email_lon: null,
+        cap_to_email_miles_arr: [],
+        shifts: []
+      });
     }
     const fg = fleetMap.get(r.fleet);
     fg.verified_total += r.verified_total || 0;
     fg.calls += r.calls || 0;
     fg.emails += r.emails || 0;
     fg.shifts.push(r);
+
+    // Track most recent CAP call
+    if(Number.isFinite(r.cap_time_ms) && (fg.cap_time_ms === null || r.cap_time_ms > fg.cap_time_ms)){
+      fg.cap_time_ms = r.cap_time_ms;
+      fg.cap_time = r.cap_time;
+      fg.cap_lat = r.cap_lat;
+      fg.cap_lon = r.cap_lon;
+    }
+    // Track most recent email event
+    if(Number.isFinite(r.last_email_time_ms) && (fg.last_email_time_ms === null || r.last_email_time_ms > fg.last_email_time_ms)){
+      fg.last_email_time_ms = r.last_email_time_ms;
+      fg.last_email_time = r.last_email_time;
+      fg.email_lat = r.email_lat;
+      fg.email_lon = r.email_lon;
+    }
+    if(Number.isFinite(r.cap_to_email_miles)) fg.cap_to_email_miles_arr.push(r.cap_to_email_miles);
   }
 
   // Sort vehicle-shift rows within each fleet: date asc, then shift asc, then vehicle asc
@@ -2864,22 +2895,29 @@ function renderInterventionsTab(eventsGlobal){
 
   const fmtNum = (x, d=5) => Number.isFinite(x) ? Number(x).toFixed(d) : '';
   const fmtMiles = (x) => Number.isFinite(x) ? Number(x).toFixed(2) : '';
-  // 13 columns total: Fleet/Vehicle, Date, Shift, Verified VF, Calls, Emails, Last CAP Call, Last Email Time, CAP Lat, CAP Lon, Email Lat, Email Lon, Cap→Email Miles
-  const TOTAL_COLS = 13;
 
   const html = [];
   for(const fg of fleetGroups){
     const isExpanded = expandedIntFleets.has(fg.fleet);
+    const fgMiles = median(fg.cap_to_email_miles_arr);
     html.push(`<tr class="fleet-row" data-int-fleet="${esc(fg.fleet)}" style="cursor:pointer;">
-      <td colspan="3">
+      <td>
         <span class="expand${isExpanded ? ' on' : ''}">▶</span>
         <strong>${esc(fg.fleet)}</strong>
         <span class="badge badge-info">${fg.shifts.length} shift${fg.shifts.length !== 1 ? 's' : ''}</span>
       </td>
+      <td></td>
+      <td></td>
       <td class="num">${fg.verified_total.toLocaleString()}</td>
       <td class="num">${fg.calls.toLocaleString()}</td>
       <td class="num">${fg.emails.toLocaleString()}</td>
-      <td colspan="${TOTAL_COLS - 6}"></td>
+      <td>${esc(fg.cap_time)}</td>
+      <td>${esc(fg.last_email_time)}</td>
+      <td class="num">${fmtNum(fg.cap_lat)}</td>
+      <td class="num">${fmtNum(fg.cap_lon)}</td>
+      <td class="num">${fmtNum(fg.email_lat)}</td>
+      <td class="num">${fmtNum(fg.email_lon)}</td>
+      <td class="num">${fgMiles !== null ? fmtMiles(fgMiles) : ''}</td>
     </tr>`);
 
     for(const r of fg.shifts){
