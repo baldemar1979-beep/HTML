@@ -627,13 +627,13 @@
           <table id="coaching-fov-table">
             <thead id="coaching-fov-thead"><tr>
               <th class="sortable" data-cfov="fleet">Fleet</th>
-              <th class="num sortable" data-cfov="totalMis">📷 Misaligned</th>
-              <th class="num sortable" data-cfov="totalSen">🔲 Sensor Covered</th>
               <th class="num sortable" data-cfov="totalWeeks">Total Weeks</th>
-              <th class="sortable" data-cfov="streak">Streak</th>
-              <th class="sortable" data-cfov="firstSeen">First Seen</th>
-              <th class="sortable" data-cfov="trend">Trend</th>
-              <th>Actions</th>
+              <th class="num sortable" data-cfov="totalMis">📷 Misaligned</th>
+              <th class="sortable" data-cfov="streakMis">Misaligned Streak</th>
+              <th class="sortable" data-cfov="trendMis">Misaligned Trend</th>
+              <th class="num sortable" data-cfov="totalSen">🔲 Sensor Covered</th>
+              <th class="sortable" data-cfov="streakSen">Sensor Covered Streak</th>
+              <th class="sortable" data-cfov="trendSen">Sensor Covered Trend</th>
             </tr></thead>
             <tbody id="coaching-fov-tbody"></tbody>
           </table>
@@ -4474,6 +4474,22 @@ document.addEventListener('click', (e)=>{
     openEvidenceModal(`FOV — ${typeName}`, `Fleet: ${fleet}`, evts, `fov_${fleet}_${type}.csv`.replace(/[^a-zA-Z0-9_.-]/g,'_'));
     return;
   }
+  // FOV vehicle-week count click → open evidence modal with CSV download
+  const fovVehCountBtn = e.target.closest('.coaching-fov-veh-count-btn');
+  if(fovVehCountBtn){
+    const fleet   = fovVehCountBtn.getAttribute('data-fleet');
+    const vehicle = fovVehCountBtn.getAttribute('data-vehicle');
+    const week    = fovVehCountBtn.getAttribute('data-week');
+    const type    = fovVehCountBtn.getAttribute('data-type'); // 'mis' or 'sen'
+    const evts    = currentNetworkFilteredEvents.filter(ev =>
+      ev.fleet === fleet && ev.vehicle === vehicle && ev.fileWeek === week &&
+      isFovMisaligned(ev) &&
+      (type === 'mis' ? eventFovTypeKey(ev) === FOV_TYPE_MISALIGNED : eventFovTypeKey(ev) === FOV_TYPE_SENSOR)
+    );
+    const typeName = type === 'mis' ? 'Camera Misaligned' : 'Sensor Covered';
+    openEvidenceModal(`FOV — ${typeName}`, `Fleet: ${fleet} / Vehicle: ${vehicle} / Week: ${week}`, evts, `fov_${fleet}_${vehicle}_${week}_${type}.csv`.replace(/[^a-zA-Z0-9_.-]/g,'_'));
+    return;
+  }
   // FOV vehicle CSV download
   const fovCsvBtn = e.target.closest('.coaching-fov-csv-btn');
   if(fovCsvBtn){
@@ -4723,17 +4739,20 @@ function _buildCoachingFovFleetData(eventsGlobal, weeks, aggregateMode){
     const trendOrder = { worsening: 2, stable: 1, improving: 0 };
     const trend = trendOrder[trendMis] >= trendOrder[trendSen] ? trendMis : trendSen;
     // Compute streak (consecutive most-recent weeks present)
-    let streak = 0;
+    let streak = 0, streakMis = 0, streakSen = 0;
+    let misDone = false, senDone = false, allDone = false;
     for(let i = sortedWks.length - 1; i >= 0; i--){
       const w = sortedWks[i];
       const hasMis = Array.from(fd.vehicles.values()).some(vd => (vd.misWkMap.get(w)||0) > 0);
       const hasSen = Array.from(fd.vehicles.values()).some(vd => (vd.senWkMap.get(w)||0) > 0);
-      if(hasMis || hasSen) streak++;
-      else break;
+      if(!allDone){ if(hasMis || hasSen) streak++; else allDone = true; }
+      if(!misDone){ if(hasMis) streakMis++; else misDone = true; }
+      if(!senDone){ if(hasSen) streakSen++; else senDone = true; }
+      if(allDone && misDone && senDone) break;
     }
     // First seen = earliest week present
     const firstSeen = sortedWks.length ? sortedWks[0] : null;
-    result.push({ fleet, totalMis, totalSen, totalWeeks: fd.allWeeks.size, trend, trendMis, trendSen, vehicles: fd.vehicles, streak, firstSeen });
+    result.push({ fleet, totalMis, totalSen, totalWeeks: fd.allWeeks.size, trend, trendMis, trendSen, vehicles: fd.vehicles, streak, streakMis, streakSen, firstSeen });
   }
   result.sort((a,b) => (b.totalMis+b.totalSen) - (a.totalMis+a.totalSen) || a.fleet.localeCompare(b.fleet));
   return result;
@@ -4780,7 +4799,8 @@ function _renderCoachingFovRepeatOffenders(eventsGlobal, weeks){
   fleetData.sort((a, b) => {
     let av, bv;
     if(fovCol === 'fleet'){ return fovDir==='asc' ? a.fleet.localeCompare(b.fleet) : b.fleet.localeCompare(a.fleet); }
-    if(fovCol === 'trend'){ av = trendOrder[a.trend]??1; bv = trendOrder[b.trend]??1; }
+    if(fovCol === 'trendMis'){ av = trendOrder[a.trendMis]??1; bv = trendOrder[b.trendMis]??1; }
+    else if(fovCol === 'trendSen'){ av = trendOrder[a.trendSen]??1; bv = trendOrder[b.trendSen]??1; }
     else { av = a[fovCol]??0; bv = b[fovCol]??0; }
     if(av===bv) return a.fleet.localeCompare(b.fleet);
     return fovDir==='asc' ? (av-bv) : (bv-av);
@@ -4790,6 +4810,17 @@ function _renderCoachingFovRepeatOffenders(eventsGlobal, weeks){
   clearSortClasses('#coaching-fov-thead th[data-cfov]');
   const fovTh = document.querySelector(`#coaching-fov-thead th[data-cfov="${fovCol}"]`);
   if(fovTh) setSortClass(fovTh, fovDir);
+
+  const _streakBadge = (s) => {
+    if(!s) return '—';
+    const emoji = s >= 4 ? '🔴' : '🟡';
+    return `<span class="streak-badge" style="background:${s >= 4 ? '#ffe5e5' : '#fff4cc'};color:${s >= 4 ? '#7b241c' : '#7a5a00'};">${emoji} ${s}wk${s!==1?'s':''}</span>`;
+  };
+  const _trendChip = (trend, label) => {
+    if(trend === 'worsening') return `<span class="chip chip-red" title="${label}">↓ ${label}</span>`;
+    if(trend === 'improving') return `<span class="chip chip-green" title="${label}">↑ ${label}</span>`;
+    return `<span class="chip chip-na" title="${label}">→ ${label}</span>`;
+  };
 
   const rows = [];
   for(const fd of fleetData){
@@ -4801,51 +4832,53 @@ function _renderCoachingFovRepeatOffenders(eventsGlobal, weeks){
     const senTot = fd.totalSen > 0
       ? `<span class="link coaching-fov-count-btn" data-fleet="${esc(fd.fleet)}" data-type="sen" style="font-weight:bold;">${fd.totalSen}</span>`
       : '—';
-    // Fleet row — only 📷 FOV nav button in Actions
-    const fovNavBtn = `<button class="btn coaching-nav-btn" data-nav-tab="fovTab" style="font-size:11px;padding:4px 8px;" title="View FOV data">📷 FOV</button>`;
-    const streakEmoji = fd.streak >= 4 ? '🔴' : '🟡';
-    const streakBadge = fd.streak > 0 ? `<span class="streak-badge" style="background:${fd.streak >= 4 ? '#ffe5e5' : '#fff4cc'};color:${fd.streak >= 4 ? '#7b241c' : '#7a5a00'};">${streakEmoji} ${fd.streak}wks</span>` : '—';
-    const firstSeenHTML = fd.firstSeen ? `<span style="font-size:12px;color:#555;">${esc(fd.firstSeen)}</span>` : '—';
     rows.push(`<tr class="fleet-row coaching-fov-fleet-row" data-fov-fleet="${esc(fd.fleet)}" style="cursor:pointer;">
       <td><span style="display:flex;align-items:center;gap:8px;">${expandIcon}<strong>${esc(fd.fleet)}</strong></span></td>
-      <td class="num">${misTot}</td>
-      <td class="num">${senTot}</td>
       <td class="num"><span class="chip chip-red">${fd.totalWeeks} wk${fd.totalWeeks!==1?'s':''}</span></td>
-      <td>${streakBadge}</td>
-      <td>${firstSeenHTML}</td>
-      <td>${_coachingFovTrendChip(fd.trendMis, fd.trendSen)}</td>
-      <td><div class="coaching-actions">${fovNavBtn}</div></td>
+      <td class="num">${misTot}</td>
+      <td>${_streakBadge(fd.streakMis)}</td>
+      <td>${_trendChip(fd.trendMis, '📷 Misaligned')}</td>
+      <td class="num">${senTot}</td>
+      <td>${_streakBadge(fd.streakSen)}</td>
+      <td>${_trendChip(fd.trendSen, '🔲 Sensor Covered')}</td>
     </tr>`);
-    // Vehicle rows — horizontal week layout, max 6 per line
+    // Vehicle rows — horizontal week layout, max 6 per line; chips are clickable
     for(const [vehicle, vd] of fd.vehicles.entries()){
       const allWks = new Set([...vd.misWkMap.keys(), ...vd.senWkMap.keys()]);
       if(allWks.size < 2) continue;
-      const buildHorizCells = (wkMap) => {
+      const buildHorizCells = (wkMap, type) => {
         const presentWeeks = weeks.filter(w => wkMap.has(w));
         if(!presentWeeks.length) return '—';
         const chips = presentWeeks.map(w => {
           const count = wkMap.get(w) || 0;
           let style = '';
           if(count === 0){ style = 'background:#f8f9fa;color:#aaa;'; }
-          else if(count <= 2){ style = 'background:#ffe5e5;color:#7b241c;'; }
-          else if(count <= 9){ style = 'background:#ffb3b3;color:#7b241c;'; }
-          else { style = 'background:#e74c3c;color:#fff;'; }
+          else if(count <= 2){ style = 'background:#ffe5e5;color:#7b241c;cursor:pointer;'; }
+          else if(count <= 9){ style = 'background:#ffb3b3;color:#7b241c;cursor:pointer;'; }
+          else { style = 'background:#e74c3c;color:#fff;cursor:pointer;'; }
+          const clickable = count > 0;
+          if(clickable){
+            const attrs = `class="link coaching-fov-veh-count-btn"`
+              + ` data-fleet="${esc(fd.fleet)}" data-vehicle="${esc(vehicle)}"`
+              + ` data-week="${esc(w)}" data-type="${type}"`;
+            const chipStyle = `display:inline-block;border-radius:4px;padding:1px 5px;margin:1px;font-size:11px;${style}`;
+            return `<span ${attrs} style="${chipStyle}">${w.replace(/^\d{4}-/,'')}: ${count}</span>`;
+          }
           return `<span style="display:inline-block;border-radius:4px;padding:1px 5px;margin:1px;font-size:11px;${style}">${w.replace(/^\d{4}-/,'')}: ${count}</span>`;
         });
         const lines = [];
         for(let i = 0; i < chips.length; i += 6) lines.push(chips.slice(i, i+6).join(''));
         return `<span style="font-size:12px;line-height:1.9;white-space:normal;">${lines.join('<br>')}</span>`;
       };
-      const csvBtn = `<button class="btn coaching-fov-csv-btn" data-fleet="${esc(fd.fleet)}" data-vehicle="${esc(vehicle)}" style="font-size:11px;padding:3px 7px;" title="Download evidence CSV for this vehicle">📄 CSV</button>`;
       rows.push(`<tr class="asset-row coaching-fov-vehicle-row${isExpanded?' visible':''}" data-fov-fleet="${esc(fd.fleet)}">
         <td style="padding-left:40px;color:#7f8c8d;">└─ ${esc(vehicle)}</td>
-        <td class="num">${buildHorizCells(vd.misWkMap)}</td>
-        <td class="num">${buildHorizCells(vd.senWkMap)}</td>
         <td></td>
+        <td class="num">${buildHorizCells(vd.misWkMap, 'mis')}</td>
         <td></td>
+        <td>${_trendChip(vd.trendMis, '📷 Misaligned')}</td>
+        <td class="num">${buildHorizCells(vd.senWkMap, 'sen')}</td>
         <td></td>
-        <td>${_coachingFovTrendChip(vd.trendMis, vd.trendSen)}</td>
-        <td>${csvBtn}</td>
+        <td>${_trendChip(vd.trendSen, '🔲 Sensor Covered')}</td>
       </tr>`);
     }
   }
