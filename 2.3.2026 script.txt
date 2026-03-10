@@ -2864,6 +2864,7 @@ function renderInterventionsTab(eventsGlobal){
 
   const fmtNum = (x, d=5) => Number.isFinite(x) ? Number(x).toFixed(d) : '';
   const fmtMiles = (x) => Number.isFinite(x) ? Number(x).toFixed(2) : '';
+  // 13 columns total: Fleet/Vehicle, Date, Shift, Verified VF, Calls, Emails, Last CAP Call, Last Email Time, CAP Lat, CAP Lon, Email Lat, Email Lon, Cap→Email Miles
   const TOTAL_COLS = 13;
 
   const html = [];
@@ -2886,7 +2887,7 @@ function renderInterventionsTab(eventsGlobal){
       const callsCell = (r.calls||0) > 0
         ? `<span class="link" data-intdrill="calls" data-key="${esc(r.key)}" title="Click to view call events">${(r.calls||0).toLocaleString()}</span>`
         : `${(r.calls||0).toLocaleString()}`;
-      const emailsCell = emailChipHTML(r.emails == null ? null : r.emails, true, r.key);
+      const emailsCell = emailChipHTML(r.emails == null ? null : r.emails, (r.emails||0) > 0, r.key);
 
       html.push(`<tr class="asset-row${isExpanded ? ' visible' : ''}" data-int-fleet="${esc(fg.fleet)}">
         <td style="padding-left:28px; color:#555;">└─ ${esc(r.vehicle)}</td>
