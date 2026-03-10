@@ -4894,8 +4894,9 @@ function _renderFleetAlertBadges(){
     const fov = agg.fov || 0;
     if(total === 0) return;
     const p = precisionExFov(valid, total, fov);
-    if(p < 0.50) red++;
-    else if(p < 0.60) yellow++;
+    const zone = _precisionZone(p);
+    if(zone === 'red') red++;
+    else if(zone === 'yellow') yellow++;
     else green++;
   });
   const persistentRed = (persistentRedZoneFleets || []).length;
@@ -5172,7 +5173,7 @@ function _computeStreakData(weekMap, allWeeks){
   let streakZone = null;
   for(let i = sorted.length - 1; i >= 0; i--){
     const w = sorted[i];
-    const wd = weekMap[w] || weekMap.get ? (weekMap.get ? weekMap.get(w) : weekMap[w]) : weekMap[w];
+    const wd = weekMap.get ? weekMap.get(w) : weekMap[w];
     if(!wd) break;
     const total = (wd.total || 0);
     const valid = (wd.valid || 0);
