@@ -4307,10 +4307,7 @@ function _loadCoachingLog(){
 }
 
 function coachingDrillFleet(fleet){
-  document.getElementById('fleet').value = fleet;
-  setActiveTab('fleetTab');
-  refreshVehicleDropdown();
-  renderAll();
+  openCoachingDrillModal(fleet, Array.from(selectedWeeks).sort());
 }
 function _coachingLogBtn(fleet, week){
   return `<button class="btn coaching-log-btn" data-fleet="${esc(fleet)}" data-week="${esc(week)}" data-entry-id="" style="font-size:11px;padding:4px 8px;">📝 Log</button>`;
@@ -5636,6 +5633,86 @@ function openCoachingDrillModal(fleet, weeks){
         </div>
       </div>
     </div>`;
+  }
+
+  // FOV Summary
+  {
+    const aggregateMode = !!document.getElementById('coaching-aggregate-toggle')?.checked;
+    const fovFleetData = _buildCoachingFovFleetData(currentNetworkFilteredEvents, sortedWeeks, aggregateMode);
+    const fovEntry = fovFleetData.find(fd => fd.fleet === fleet);
+    if(fovEntry){
+      // Build fleet-level mis/sen wkMaps by aggregating across vehicles
+      const fleetMisMap = new Map();
+      const fleetSenMap = new Map();
+      for(const vd of fovEntry.vehicles.values()){
+        for(const [w, c] of vd.misWkMap) fleetMisMap.set(w, (fleetMisMap.get(w)||0) + c);
+        for(const [w, c] of vd.senWkMap) fleetSenMap.set(w, (fleetSenMap.get(w)||0) + c);
+      }
+      const trendLabel = t => t === 'worsening' ? '<span style="color:#e74c3c;">↑ Worsening</span>' : t === 'improving' ? '<span style="color:#27ae60;">↓ Improving</span>' : '<span style="color:#7f8c8d;">→ Stable</span>';
+      html += `<div class="coaching-drill-section">
+        <h4>📷 FOV Summary</h4>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#f8f9fa;border-radius:8px;">
+            <span>📷 Misaligned Events</span>
+            <span><strong>${fovEntry.totalMis}</strong> &nbsp; Streak: <strong>${fovEntry.streakMis} wk${fovEntry.streakMis!==1?'s':''}</strong> &nbsp; ${trendLabel(fovEntry.trendMis)} &nbsp; ${_fovSparkline(fleetMisMap, sortedWeeks, fovEntry.trendMis)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#f8f9fa;border-radius:8px;">
+            <span>🔲 Sensor Covered Events</span>
+            <span><strong>${fovEntry.totalSen}</strong> &nbsp; Streak: <strong>${fovEntry.streakSen} wk${fovEntry.streakSen!==1?'s':''}</strong> &nbsp; ${trendLabel(fovEntry.trendSen)} &nbsp; ${_fovSparkline(fleetSenMap, sortedWeeks, fovEntry.trendSen)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#f8f9fa;border-radius:8px;">
+            <span>First Seen</span>
+            <strong>${fovEntry.firstSeen ? esc(fovEntry.firstSeen) : '—'}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#f8f9fa;border-radius:8px;">
+            <span>Affected Vehicles</span>
+            <strong>${fovEntry.vehicles.size}</strong>
+          </div>
+        </div>
+      </div>`;
+    } else {
+      html += `<div class="coaching-drill-section">
+        <h4>📷 FOV Summary</h4>
+        <div style="color:#7f8c8d;font-size:13px;">No FOV repeat events found for this fleet in the selected weeks.</div>
+      </div>`;
+    }
+  }
+
+  // Software Update
+  {
+    const agg = fleetAggByName.get(fleet);
+    if(agg){
+      const sv = String(agg.version_mix || '').trim();
+      const latestV = latestVersionStr || '—';
+      // Count vehicles by version from vehicleAggByKey
+      const vehVersions = new Map();
+      for(const [key, v] of vehicleAggByKey.entries()){
+        if(v.fleet !== fleet) continue;
+        const ver = String(v.software_version || '').trim() || 'Unknown';
+        vehVersions.set(ver, (vehVersions.get(ver)||0) + 1);
+      }
+      const versionRows = Array.from(vehVersions.entries())
+        .sort((a,b) => b[1]-a[1])
+        .map(([ver, cnt]) => {
+          const isLatest = latestVersionStr && ver !== 'Unknown' && cmpVersion(ver, latestVersionStr) === 0;
+          const badge = isLatest ? ' <span style="background:#e6f7e6;color:#1e5631;border-radius:4px;padding:1px 5px;font-size:11px;">✓ Latest</span>' : '';
+          return `<div style="display:flex;justify-content:space-between;padding:4px 10px;background:#f8f9fa;border-radius:6px;font-size:13px;">
+            <span>${esc(ver)}${badge}</span><strong>${cnt} vehicle${cnt!==1?'s':''}</strong>
+          </div>`;
+        }).join('');
+      html += `<div class="coaching-drill-section">
+        <h4>🔄 Software Update</h4>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#f8f9fa;border-radius:8px;font-size:13px;">
+            <span>Latest Version (network-wide)</span><strong>${esc(latestV)}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#f8f9fa;border-radius:8px;font-size:13px;">
+            <span>Fleet Update Status</span><strong>${esc(sv || '—')}</strong>
+          </div>
+          ${versionRows}
+        </div>
+      </div>`;
+    }
   }
 
   // Coaching History from log
