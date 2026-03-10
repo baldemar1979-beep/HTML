@@ -234,10 +234,12 @@
       user-select: none;
     }
     .alert-badge:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .alert-badge-all { background: #eaf0fb; color: #1a3a6e; border-color: #3498db; }
     .alert-badge-red { background: #ffe5e5; color: #7b241c; border-color: #e74c3c; }
     .alert-badge-yellow { background: #fff4cc; color: #7a5a00; border-color: #f39c12; }
     .alert-badge-green { background: #e6f7e6; color: #1e5631; border-color: #27ae60; }
     .alert-badge-persistent { background: #fff0f0; color: #7b241c; border-color: #c0392b; }
+    .alert-badge-active { box-shadow: 0 0 0 3px rgba(52,152,219,0.35); outline: 2px solid #3498db; }
     .coaching-drill-section { margin-bottom:16px; }
     .coaching-drill-section h4 { font-size:13px; font-weight:950; color:#2c3e50; margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid #eee; }
     .coaching-timeline-entry { border-left:3px solid #3498db; padding:8px 12px; margin-bottom:8px; background:#f8fafc; border-radius:0 8px 8px 0; }
@@ -391,35 +393,16 @@
         <div id="fleet-alert-badges" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
           <span style="color:#7f8c8d; font-size:12px;">Upload CSV(s) to view precision alerts</span>
         </div>
-        <div style="font-size:11px; color:#7f8c8d; margin-top:8px;">Click a badge to filter the fleet table below to that precision zone</div>
+        <div style="font-size:11px; color:#7f8c8d; margin-top:8px;">Click a badge to filter the fleet table to that precision zone. Click <strong>All</strong> to show all fleets.</div>
       </div>
       <div class="section-title">Fleet Management</div>
 
-      <div class="controls" style="margin-bottom:14px;">
-        <div class="block wide">
-          <div class="fg">
-            <label style="margin-bottom:10px;">Fleet Precision Zone</label>
-            <div style="display:flex; gap:15px; flex-wrap:wrap; align-items:center;">
-              <label style="display:flex; align-items:center; gap:6px; margin:0; color:#2c3e50; font-weight:normal;">
-                <input type="checkbox" class="zone-checkbox" data-zone="all" checked />
-                <span>All</span>
-              </label>
-              <label style="display:flex; align-items:center; gap:6px; margin:0; color:#e74c3c; font-weight:normal;">
-                <input type="checkbox" class="zone-checkbox" data-zone="red" />
-                <span style="color:#e74c3c; font-weight:bold;">Red (&lt; 50%)</span>
-              </label>
-              <label style="display:flex; align-items:center; gap:6px; margin:0; color:#f39c12; font-weight:normal;">
-                <input type="checkbox" class="zone-checkbox" data-zone="yellow" />
-                <span style="color:#f39c12; font-weight:bold;">Yellow (50–59.9%)</span>
-              </label>
-              <label style="display:flex; align-items:center; gap:6px; margin:0; color:#27ae60; font-weight:normal;">
-                <input type="checkbox" class="zone-checkbox" data-zone="green" />
-                <span style="color:#27ae60; font-weight:bold;">Green (≥ 60%)</span>
-              </label>
-            </div>
-            <div class="hint">Select precision zones to filter fleets shown (and their vehicle rows).</div>
-          </div>
-        </div>
+      <!-- Zone filter state: hidden checkboxes retain JS/persistence compatibility -->
+      <div style="display:none;" aria-hidden="true">
+        <input type="checkbox" class="zone-checkbox" data-zone="all" checked />
+        <input type="checkbox" class="zone-checkbox" data-zone="red" />
+        <input type="checkbox" class="zone-checkbox" data-zone="yellow" />
+        <input type="checkbox" class="zone-checkbox" data-zone="green" />
       </div>
 
       <div class="table-wrap">
@@ -993,12 +976,12 @@
         <div style="color:#34495e; font-size:13px; line-height:1.55;">
           <ol style="padding-left:18px; margin-top:6px;">
             <li><strong>Step 1 — Review Fleet KPIs:</strong> Seven summary KPIs are shown at the top — Total Events, Valid Fatigue, False Events, FOV Events, Precision %, Active Fleets, and Active Vehicles.</li>
-            <li><strong>Step 2 — Apply Fleet Precision Zone Filter:</strong> Use the zone filter chips to show only
-              <span style="background:#ffe5e5;color:#7b241c;border-radius:4px;padding:1px 6px;font-size:12px;">Red</span>,
-              <span style="background:#fff4cc;color:#7a5a00;border-radius:4px;padding:1px 6px;font-size:12px;">Yellow</span>, or
-              <span style="background:#e6f7e6;color:#1e5631;border-radius:4px;padding:1px 6px;font-size:12px;">Green</span>
-              precision-zone fleets.</li>
-            <li><strong>Step 3 — Precision Alert Summary:</strong> The strip at the top of the Fleet Management tab shows how many fleets are in each precision zone (Red/Yellow/Green). Click a badge to filter the fleet table to that zone. Click "🎯 Full Coaching View ↗" to go directly to the Coaching tab.</li>
+            <li><strong>Step 2 — Precision Alert Summary:</strong> The strip at the top shows how many fleets are in each precision zone. Click <strong>🌐 All</strong> to show all fleets, or click
+              <span style="background:#ffe5e5;color:#7b241c;border-radius:4px;padding:1px 6px;font-size:12px;">🔴 Red</span>,
+              <span style="background:#fff4cc;color:#7a5a00;border-radius:4px;padding:1px 6px;font-size:12px;">🟡 Yellow</span>, or
+              <span style="background:#e6f7e6;color:#1e5631;border-radius:4px;padding:1px 6px;font-size:12px;">🟢 Green</span>
+              to filter the fleet table to that precision zone.</li>
+            <li><strong>Step 3 — Precision Alert Summary (continued):</strong> Click "🎯 Full Coaching View ↗" to go directly to the Coaching tab.</li>
              <li><strong>Step 4 — Review Fleet Table:</strong> Columns are sortable. Click a fleet row to expand and see individual vehicles. Click any event count cell to open the Evidence Modal.</li>
             <li><strong>Step 5 — Drill into Vehicle Detail:</strong> After expanding a fleet, each vehicle row shows event counts, precision %, and the firmware version (<code>Version</code> column) for that vehicle.</li>
           </ol>
@@ -4882,19 +4865,36 @@ function _renderFleetAlertBadges(){
   });
   const persistentRed = (persistentRedZoneFleets || []).length;
 
+  // Determine which zone badge is currently active
+  const checkedZones = Array.from(document.querySelectorAll('.zone-checkbox:checked')).map(cb => cb.dataset.zone);
+  const activeZone = checkedZones.includes('all') ? 'all'
+    : checkedZones.length === 1 ? checkedZones[0]
+    : (checkedZones.includes('red') && checkedZones.length === 1 && persistentRed > 0) ? 'persistent'
+    : 'multi';
+
+  const totalFleets = red + yellow + green;
+  const allActive = activeZone === 'all' ? ' alert-badge-active' : '';
+  const redActive = (activeZone === 'red' || activeZone === 'persistent') ? ' alert-badge-active' : '';
+  const yellowActive = activeZone === 'yellow' ? ' alert-badge-active' : '';
+  const greenActive = activeZone === 'green' ? ' alert-badge-active' : '';
+
   let html = '';
-  html += `<span class="alert-badge alert-badge-red" onclick="_fleetAlertBadgeClick('red')">🔴 Red (&lt;50%) — ${red} fleet${red !== 1 ? 's' : ''}</span>`;
-  html += `<span class="alert-badge alert-badge-yellow" onclick="_fleetAlertBadgeClick('yellow')">🟡 Yellow (50–59%) — ${yellow} fleet${yellow !== 1 ? 's' : ''}</span>`;
-  html += `<span class="alert-badge alert-badge-green" onclick="_fleetAlertBadgeClick('green')">🟢 Green (≥60%) — ${green} fleet${green !== 1 ? 's' : ''}</span>`;
+  html += `<span class="alert-badge alert-badge-all${allActive}" onclick="_fleetAlertBadgeClick('all')">🌐 All — ${totalFleets} fleet${totalFleets !== 1 ? 's' : ''}</span>`;
+  html += `<span class="alert-badge alert-badge-red${redActive}" onclick="_fleetAlertBadgeClick('red')">🔴 Red (&lt;50%) — ${red} fleet${red !== 1 ? 's' : ''}</span>`;
+  html += `<span class="alert-badge alert-badge-yellow${yellowActive}" onclick="_fleetAlertBadgeClick('yellow')">🟡 Yellow (50–59%) — ${yellow} fleet${yellow !== 1 ? 's' : ''}</span>`;
+  html += `<span class="alert-badge alert-badge-green${greenActive}" onclick="_fleetAlertBadgeClick('green')">🟢 Green (≥60%) — ${green} fleet${green !== 1 ? 's' : ''}</span>`;
   if(persistentRed > 0){
-    html += `<span class="alert-badge alert-badge-persistent" onclick="_fleetAlertBadgeClick('persistent')">🚨 Persistent Red — ${persistentRed} fleet${persistentRed !== 1 ? 's' : ''}</span>`;
+    const persActive = activeZone === 'persistent' ? ' alert-badge-active' : '';
+    html += `<span class="alert-badge alert-badge-persistent${persActive}" onclick="_fleetAlertBadgeClick('persistent')">🚨 Persistent Red — ${persistentRed} fleet${persistentRed !== 1 ? 's' : ''}</span>`;
   }
   badgesEl.innerHTML = html;
 }
 
 function _fleetAlertBadgeClick(zone){
   document.querySelectorAll('.zone-checkbox').forEach(cb => {
-    if(cb.dataset.zone === 'all'){
+    if(zone === 'all'){
+      cb.checked = (cb.dataset.zone === 'all');
+    } else if(cb.dataset.zone === 'all'){
       cb.checked = false;
     } else {
       cb.checked = (cb.dataset.zone === zone) || (zone === 'persistent' && cb.dataset.zone === 'red');
@@ -4907,7 +4907,7 @@ function _fleetAlertBadgeClick(zone){
     if(allCb) allCb.checked = true;
   }
   renderAll();
-  document.getElementById('fleetTab')?.scrollIntoView({ behavior:'smooth', block:'start' });
+  document.getElementById('fleet-precision-alert-strip')?.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 function _renderFovWowStrip(eventsGlobal, weeks){
