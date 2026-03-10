@@ -791,7 +791,7 @@
               </label>
               <label style="display:flex; align-items:center; cursor:pointer; font-size:13px;">
                 <input type="checkbox" id="trends-vol-fov" checked style="margin-right:6px; cursor:pointer;">
-                FOV Misaligned Events
+                FOV Misaligned Events (Verified)
               </label>
               <label style="display:flex; align-items:center; cursor:pointer; font-size:13px;">
                 <input type="checkbox" id="trends-vol-sensor-covered" checked style="margin-right:6px; cursor:pointer;">
@@ -3795,7 +3795,7 @@ function renderTrendsTab(eventsGlobal) {
     metrics.total++;
     if (isValidFatigue) metrics.valid++;
     if (isFov) metrics.fov++;
-    if (isFovMis) metrics.fovMisaligned++;
+    if (isFovMis && isVerified) metrics.fovMisaligned++;
     if (isFovSensorCov && isVerified) metrics.fovSensorCovered++;
     // otherEvents = total events excluding FOV and Valid alerts
     if (!isFov && !isValidFatigue) metrics.otherEvents++;
@@ -3850,8 +3850,8 @@ function renderTrendsTab(eventsGlobal) {
     // Volume changes - track each event type separately
     const prevOtherEvents = prevMetrics.otherEvents || 0;
     const currOtherEvents = currMetrics.otherEvents || 0;
-    const prevFov = prevMetrics.fov;
-    const currFov = currMetrics.fov;
+    const prevFov = prevMetrics.fovMisaligned || 0;
+    const currFov = currMetrics.fovMisaligned || 0;
     const prevValid = prevMetrics.valid;
     const currValid = currMetrics.valid;
     const prevFovSensorCovered = prevMetrics.fovSensorCovered || 0;
