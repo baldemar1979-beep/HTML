@@ -892,28 +892,6 @@
         <div id="coaching-risk-nodata" class="no-data">Upload CSV(s) to view coaching priority matrix</div>
       </div>
 
-      <!-- Persistent Red Zone Detailed View -->
-      <div class="card" id="coaching-persistent-rz-card" style="margin-bottom:14px; display:none;">
-        <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">🚨 Persistent Red Zone Fleets (&lt;25% Precision)</h3>
-        <div id="coaching-persistent-rz-info" style="font-size:13px; color:#7f8c8d; margin-bottom:10px;"></div>
-        <div class="table-wrap coaching-table-wrap">
-          <table>
-            <thead id="coaching-persistent-rz-thead">
-              <tr>
-                <th class="sortable" data-prz="fleet">Fleet</th>
-                <th class="num sortable" data-prz="weeksAnalyzed">Weeks Analyzed</th>
-                <th class="num sortable" data-prz="weeksBelow">Weeks Below 25%</th>
-                <th class="num sortable" data-prz="currPrec">Current Prec</th>
-                <th class="num sortable" data-prz="avgPrec">Avg Prec</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="coaching-persistent-rz-tbody"></tbody>
-          </table>
-        </div>
-        <div id="coaching-persistent-rz-nodata" class="no-data" style="display:none;">No fleets in persistent red zone</div>
-      </div>
-
       <!-- Section: Coaching Action Log -->
       <div class="card" style="margin-bottom:14px;">
         <h3 style="margin-bottom:10px; color:#2c3e50; font-size:16px; font-weight:1000;">📝 Coaching Action Log</h3>
@@ -1068,10 +1046,8 @@
             <li><strong>Step 2 — Toggle Aggregation Mode:</strong> Switch between <em>All Weeks</em> and <em>Latest Week</em> to adjust scoring context.</li>
             <li><strong>Step 3 — Precision Zone Summary badges:</strong> Badges at the top of the table show fleet counts by zone — 🔴 Red, 🟡 Yellow, 🟢 Green. Click to filter the table to that zone.</li>
             <li><strong>Step 4 — Review Fleet Precision Overview table:</strong> Sortable table of all fleets with Precision %, WoW Δ, Streak, Valid Fatigue, and FOV Events. Sort by Precision % ascending to see worst performers first.</li>
-            <li><strong>Step 5 — Review Persistent Red Zone Fleets:</strong> Fleets with &lt;25% precision across multiple weeks are flagged for escalation.</li>
-            <li><strong>FOV Repeat Offenders:</strong> This section has moved to the FOV tab for a unified FOV view.</li>
-            <li><strong>Step 7 — Log Coaching Actions:</strong> Click the 📝 <strong>Log</strong> button on any fleet row to record: session date, coach name, session type, topics covered, notes, action items, and follow-up date.</li>
-            <li><strong>Step 8 — Manage Coaching Logs:</strong> Use the coaching log section to export logs to CSV, import a previously exported CSV, or view, edit, and delete individual log entries.</li>
+            <li><strong>Step 5 — Log Coaching Actions:</strong> Click the 📝 <strong>Log</strong> button on any fleet row to record: session date, coach name, session type, topics covered, notes, action items, and follow-up date.</li>
+            <li><strong>Step 6 — Manage Coaching Logs:</strong> Use the coaching log section to export logs to CSV, import a previously exported CSV, or view, edit, and delete individual log entries.</li>
           </ol>
         </div>
       </div>
@@ -5339,8 +5315,6 @@ function _renderPersistentRedZoneAlert(riskResults, weeks){
       <span style="font-size:16px;">${icon}</span>
       <span style="font-size:13px;font-weight:950;color:#1e5631;">${title} — All fleets above 25% precision for last ${weeks.length} week${weeks.length!==1?'s':''}</span>
     </div>`;
-    const rzCard = document.getElementById('coaching-persistent-rz-card');
-    if(rzCard) rzCard.style.display = 'none';
     return;
   }
 
@@ -5357,60 +5331,8 @@ function _renderPersistentRedZoneAlert(riskResults, weeks){
     <div style="margin-top:8px;font-size:13px;color:#34495e;line-height:1.5;">
       <strong>${cnt} fleet${cnt!==1?'s':''}</strong> have been below 25% precision for multiple weeks.<br>
       These require IMMEDIATE ESCALATION beyond routine coaching.
-      <button class="btn" onclick="document.getElementById('coaching-persistent-rz-card').scrollIntoView({behavior:'smooth'});" style="margin-top:8px;font-size:12px;">View Details ↓</button>
     </div>
   </details>`;
-
-  // Render detailed view
-  const rzCard = document.getElementById('coaching-persistent-rz-card');
-  if(rzCard) rzCard.style.display = '';
-  const rzInfo = document.getElementById('coaching-persistent-rz-info');
-  if(rzInfo) rzInfo.textContent = `Based on: ${weeks.length} weeks selected (${weeks[0]} to ${weeks[weeks.length-1]})`;
-  const rzTbody = document.getElementById('coaching-persistent-rz-tbody');
-  const rzNodata = document.getElementById('coaching-persistent-rz-nodata');
-  if(!rzTbody) return;
-  if(rzNodata) rzNodata.style.display = 'none';
-
-  const latestWeek = weeks[weeks.length-1];
-
-  // Pre-compute sortable fields
-  const przRows = persistentFleets.map(f => {
-    const weeksAnalyzed = weeks.filter(w => f.weekMap.get(w)).length;
-    const pctBelow = weeksAnalyzed > 0 ? Math.round(f.weeksBelowThreshold/weeksAnalyzed*100) : 0;
-    let tot=0,n=0;
-    for(const w of weeks){ const m=f.weekMap.get(w); if(m){ tot+=precisionExFov(m.valid,m.total,m.fov); n++; } }
-    const avgPrec = n>0 ? tot/n : null;
-    return { f, weeksAnalyzed, pctBelow, avgPrec };
-  });
-
-  // Sort
-  const przCol = coachingPrzSort.col;
-  const przDir = coachingPrzSort.dir;
-  przRows.sort((a, b) => {
-    let av, bv;
-    if(przCol === 'fleet')         { return przDir==='asc' ? a.f.fleet.localeCompare(b.f.fleet) : b.f.fleet.localeCompare(a.f.fleet); }
-    if(przCol === 'weeksAnalyzed') { av=a.weeksAnalyzed; bv=b.weeksAnalyzed; }
-    else if(przCol === 'weeksBelow'){ av=a.f.weeksBelowThreshold; bv=b.f.weeksBelowThreshold; }
-    else if(przCol === 'currPrec') { av=a.f.currPrec??-Infinity; bv=b.f.currPrec??-Infinity; }
-    else if(przCol === 'avgPrec')  { av=a.avgPrec??-Infinity; bv=b.avgPrec??-Infinity; }
-    else                           { av=a.f.weeksBelowThreshold; bv=b.f.weeksBelowThreshold; }
-    if(av===bv) return a.f.fleet.localeCompare(b.f.fleet);
-    return przDir==='asc' ? (av-bv) : (bv-av);
-  });
-
-  // Update sort indicators on header
-  clearSortClasses('#coaching-persistent-rz-thead th[data-prz]');
-  const przTh = document.querySelector(`#coaching-persistent-rz-thead th[data-prz="${przCol}"]`);
-  if(przTh) setSortClass(przTh, przDir);
-
-  rzTbody.innerHTML = przRows.map(({f, weeksAnalyzed, pctBelow, avgPrec}) => `<tr>
-      <td><strong>${esc(f.fleet)}</strong></td>
-      <td class="num">${weeksAnalyzed}</td>
-      <td class="num"><span class="chip chip-red">${f.weeksBelowThreshold}/${weeksAnalyzed} (${pctBelow}%)</span></td>
-      <td class="num">${f.currPrec!==null?`<span class="prec-cell prec-bad">${f.currPrec.toFixed(1)}%</span>`:'N/A'}</td>
-      <td class="num">${avgPrec!==null?`${avgPrec.toFixed(1)}%`:'N/A'}</td>
-      <td>${_coachingActionBtns(f.fleet, latestWeek)}</td>
-    </tr>`).join('');
 }
 
 function _renderCoachingPrecisionTable(fleetData, weeks){
@@ -5925,24 +5847,6 @@ document.addEventListener('click', (e) => {
   const level = row.getAttribute('data-risk-filter-level');
   if(!level) return;
   document.getElementById('coaching-matrix-card')?.scrollIntoView({behavior:'smooth'});
-});
-
-// Persistent Red Zone table sort
-document.addEventListener('click', (e) => {
-  const th = e.target.closest('#coaching-persistent-rz-thead th[data-prz]');
-  if(!th) return;
-  const col = th.getAttribute('data-prz');
-  if(!col) return;
-  if(coachingPrzSort.col === col){
-    coachingPrzSort.dir = coachingPrzSort.dir === 'asc' ? 'desc' : 'asc';
-  } else {
-    coachingPrzSort.col = col;
-    coachingPrzSort.dir = col === 'fleet' ? 'asc' : 'desc';
-  }
-  const riskArr = Array.from(coachingRiskScores.values());
-  const weeks = Array.from(selectedWeeks).sort();
-  _renderPersistentRedZoneAlert(riskArr, weeks);
-  schedulePersist();
 });
 
 // FOV Repeat Offenders table sort
