@@ -1602,6 +1602,11 @@ function precisionBucket(p){
   if(p < 60) return 'yellow';
   return 'green';
 }
+function precisionBucketColor(p){
+  if(p < 50) return '#e74c3c';
+  if(p < 60) return '#f39c12';
+  return '#27ae60';
+}
 function fmtDateTime(ms){
   if(!Number.isFinite(ms)) return 'N/A';
   const d = new Date(ms);
@@ -3784,7 +3789,7 @@ function renderTrendsTab(eventsGlobal) {
     const metrics = weekMap.get(week);
     const { isFov, isValidFatigue } = classifyEvent(e);
     const isFovMis = isFovMisaligned(e);
-    const isFovSensorCov = isFov && ((e.classification || '').toLowerCase().includes('sensor covered') || (e.event_type || '').toLowerCase().includes('sensor covered'));
+    const isFovSensorCov = isFov && eventFovTypeKey(e) === FOV_TYPE_SENSOR;
     const isVerified = (e.confirmation || '').toLowerCase().trim() === 'verified';
     
     metrics.total++;
@@ -4165,7 +4170,7 @@ function renderTrendsTab(eventsGlobal) {
         <td style="font-size:20px; text-align:center;">${trophy || d.rank}</td>
         <td><strong>${esc(d.fleet)}</strong></td>
         <td class="num">${d.prevPrec.toFixed(1)}%</td>
-        <td class="num"><strong style="color:${d.currPrec >= 60 ? '#27ae60' : d.currPrec >= 50 ? '#f39c12' : '#e74c3c'}; font-size:16px;">${d.currPrec.toFixed(1)}%</strong></td>
+        <td class="num"><strong style="color:${precisionBucketColor(d.currPrec)}; font-size:16px;">${d.currPrec.toFixed(1)}%</strong></td>
         <td class="num"><span class="chip ${deltaClass}" style="font-size:14px;">${deltaSign}${d.delta.toFixed(1)}%</span></td>
       </tr>
     `;
