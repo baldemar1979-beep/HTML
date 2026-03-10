@@ -344,7 +344,7 @@
       <!-- Classification Filter -->
       <div id="class-filter-block" class="block wide" style="flex-basis: 100%;">
         <details open>
-          <summary>Classification (updates Fleet KPIs + Fleet table)</summary>
+          <summary>Classification <span style="font-size:11px; font-weight:normal; color:#7f8c8d;">(Fleet tab only)</span></summary>
           <div class="fg" style="margin-top:10px;">
             <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
               <input id="class-search" type="text" placeholder="Search classification..." style="flex:1; min-width:160px; padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px;" />
@@ -354,7 +354,7 @@
             <div id="class-panel" class="panel" style="height:160px;">
               <div style="color:#7f8c8d;font-size:12px;">Upload CSV(s) to load classifications</div>
             </div>
-            <div class="hint">This filter updates Fleet KPIs + Fleet table (does not change Interventions/FOV).</div>
+            <div class="hint">Filters the <strong>Fleet tab KPIs</strong> and <strong>Fleet table</strong> only. Does <strong>not</strong> affect Interventions, FOV, Trends, or Coaching tabs.</div>
           </div>
         </details>
       </div>
@@ -367,14 +367,12 @@
 
       <!-- Option B addition: Total Events KPI toggle (Include FOV) -->
       <div class="stat">
-        <div class="label">
-          Total Events
-          <label style="margin-left:8px; font-size:11px; color:#7f8c8d; text-transform:none; letter-spacing:0; font-weight:950;">
-            <input type="checkbox" id="kpi-include-fov" style="vertical-align:middle; margin-right:6px;">
-            Include FOV
-          </label>
-        </div>
+        <div class="label">Total Events</div>
         <div class="value" id="s-total">0</div>
+        <label style="font-size:11px; color:#7f8c8d; font-weight:950; margin-top:4px; display:flex; align-items:center; gap:4px; justify-content:center; text-transform:none; letter-spacing:0;">
+          <input type="checkbox" id="kpi-include-fov" style="vertical-align:middle;">
+          Include FOV
+        </label>
       </div>
 
       <div class="stat"><div class="label">Valid Fatigue</div><div class="value" id="s-valid">0</div></div>
@@ -981,7 +979,7 @@
         <div style="color:#34495e; font-size:13px; line-height:1.55;">
           <ul style="padding-left:18px; margin-top:6px;">
             <li><strong>Network Filters</strong> — apply to all tabs except the Classification filter. Use these to scope data by week, date range, fleet, or vehicle.</li>
-            <li><strong>Classification Filter (Fleet Tab Only)</strong> — appears on the Fleet tab and further restricts visible rows by event classification.</li>
+            <li><strong>Classification Filter (Fleet Tab Only)</strong> — filters the <strong>Fleet tab KPIs</strong> and <strong>Fleet table</strong> only. Select or deselect event classifications to narrow the events counted and displayed on the Fleet tab. This filter does <strong>not</strong> affect the Interventions, FOV, Trends, or Coaching tabs — those tabs always use the full Network Filter scope.</li>
             <li><strong>Reset Filters</strong> — click the <strong>Reset Filters</strong> button to restore all filter controls to their default values.</li>
             <li><strong>Collapsible Sections</strong> — click any Controls section header to collapse or expand it, keeping the interface tidy.</li>
           </ul>
