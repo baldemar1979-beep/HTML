@@ -468,10 +468,7 @@
       </div>
 
       <div class="card">
-        <h3>Vehicle-shifts (sortable)</h3>
-        <div style="margin-bottom:8px;">
-          <button class="btn" id="int-toggle-coords" type="button">Show Coordinates</button>
-        </div>
+        <h3>Vehicle-shifts by Fleet (expandable)</h3>
         <div class="subnote">
           A <strong>vehicle-shift</strong> is one vehicle on one calendar day in either <strong>Day (06:01–19:59)</strong> or <strong>Night (20:00–06:00)</strong>.
           <br/>
@@ -484,19 +481,18 @@
           <table>
             <thead>
               <tr>
+                <th class="sortable" data-icol="fleet">Fleet / Vehicle</th>
                 <th class="sortable" data-icol="dateISO">Date</th>
                 <th class="sortable" data-icol="shift">Shift</th>
-                <th class="sortable" data-icol="fleet">Fleet</th>
-                <th class="sortable" data-icol="vehicle">Vehicle</th>
                 <th class="num sortable" data-icol="verified_total">Verified Valid Fatigue</th>
                 <th class="num sortable" data-icol="calls">Calls</th>
                 <th class="num sortable" data-icol="emails">Emails</th>
                 <th class="sortable" data-icol="cap_time">Last CAP Call</th>
                 <th class="sortable" data-icol="last_email_time">Last Email Time</th>
-                <th class="num sortable" data-icol="cap_lat" data-coord="true" style="display:none">CAP Lat</th>
-                <th class="num sortable" data-icol="cap_lon" data-coord="true" style="display:none">CAP Lon</th>
-                <th class="num sortable" data-icol="email_lat" data-coord="true" style="display:none">Email Lat</th>
-                <th class="num sortable" data-icol="email_lon" data-coord="true" style="display:none">Email Lon</th>
+                <th class="num sortable" data-icol="cap_lat">CAP Lat</th>
+                <th class="num sortable" data-icol="cap_lon">CAP Lon</th>
+                <th class="num sortable" data-icol="email_lat">Email Lat</th>
+                <th class="num sortable" data-icol="email_lon">Email Lon</th>
                 <th class="num sortable" data-icol="cap_to_email_miles">Cap→Email Miles</th>
               </tr>
             </thead>
@@ -984,8 +980,8 @@
               <span style="background:#fff4cc;color:#7a5a00;border-radius:4px;padding:1px 6px;font-size:12px;">Yellow</span>,
               <span style="background:#e0e0e0;color:#555;border-radius:4px;padding:1px 6px;font-size:12px;">Grey</span>, or
               <span style="background:#f4f4f4;color:#888;border-radius:4px;padding:1px 6px;font-size:12px;">NA</span>.</li>
-            <li><strong>Step 5 — Review Vehicle-Shifts Table:</strong> Each row represents a unique vehicle/shift combination. Sortable columns include Calls, Emails, and Cap→Email Miles.</li>
-            <li><strong>Step 6 — Download Evidence:</strong> Click any clickable Emails count to open the Evidence Modal and download a CSV of those events.</li>
+            <li><strong>Step 5 — Review Vehicle-Shifts Table:</strong> Rows are grouped at the fleet level. Click a fleet row to expand and see all individual vehicle-shift sub-rows. Coordinates (CAP Lat/Lon, Email Lat/Lon) are always visible. Sortable columns include Fleet, Verified Valid Fatigue, Calls, and Emails.</li>
+            <li><strong>Step 6 — Download Evidence:</strong> In any expanded fleet, click Verified Valid Fatigue, Calls, or Emails counts to open the Evidence Modal and download a CSV of those events.</li>
           </ol>
         </div>
       </div>
@@ -1337,6 +1333,7 @@ function uiSnapshot(){
     expandedFleets: Array.from(expandedFleets),
     expandedFovFleets: Array.from(expandedFovFleets),
     expandedCoachingFovFleets: Array.from(expandedCoachingFovFleets),
+    expandedIntFleets: Array.from(expandedIntFleets),
 
     emailBuckets: Array.from(selectedEmailBuckets),
     emailsManuallyChanged,
@@ -1380,7 +1377,6 @@ function uiSnapshot(){
     coachingFovTrendAggregate,
     coachingHighOnly: !!document.getElementById('coaching-high-only')?.checked,
     coachingPrecisionSort,
-    showIntCoords,
     coachingAggregateMode: !!document.getElementById('coaching-aggregate-toggle')?.checked
   };
 }
@@ -1417,6 +1413,7 @@ function applyUiSnapshot(s){
   if(Array.isArray(s.expandedFleets)) expandedFleets = new Set(s.expandedFleets);
   if(Array.isArray(s.expandedFovFleets)) expandedFovFleets = new Set(s.expandedFovFleets);
   if(Array.isArray(s.expandedCoachingFovFleets)) expandedCoachingFovFleets = new Set(s.expandedCoachingFovFleets);
+  if(Array.isArray(s.expandedIntFleets)) expandedIntFleets = new Set(s.expandedIntFleets);
 
   if(Array.isArray(s.emailBuckets)) selectedEmailBuckets = new Set(s.emailBuckets);
   if(typeof s.emailsManuallyChanged === 'boolean') emailsManuallyChanged = s.emailsManuallyChanged;
@@ -1470,7 +1467,6 @@ function applyUiSnapshot(s){
     if(cb) cb.checked = s.coachingHighOnly;
   }
   if(s.coachingPrecisionSort) coachingPrecisionSort = s.coachingPrecisionSort;
-  if(typeof s.showIntCoords === 'boolean'){ showIntCoords = s.showIntCoords; _applyIntCoordsVisibility(); }
   if(typeof s.coachingAggregateMode === 'boolean'){
     const tog = document.getElementById('coaching-aggregate-toggle');
     if(tog) tog.checked = s.coachingAggregateMode;
@@ -1522,6 +1518,7 @@ let expandedCoachingFovFleets = new Set();
 let sortState = { col:null, dir:'asc' }; // fleet tab sort
 let fovSort = { col:'events_count', dir:'desc' };
 let intSort = { col:'verified_total', dir:'desc' };
+let expandedIntFleets = new Set();
 let trendsBestSort = { col:'delta', dir:'desc' }; // Trends Best Performers table
 let trendsWorstSort = { col:'delta', dir:'asc' }; // Trends Declining Fleets table (asc because negative deltas)
 let trendsLeadersSort = { col:'currPrec', dir:'desc' }; // Trends Performance Leaders table
@@ -1548,7 +1545,6 @@ let coachingLog = [];  // persisted in LS_COACHING
 let coachingRiskScores = new Map(); // fleet → risk score object (kept for drill modal compatibility)
 let persistentRedZoneFleets = []; // fleets <25% for multiple weeks
 let coachingPrecisionSort = { col:'precision', dir:'asc' }; // worst first by default
-let showIntCoords = false;
 let coachingMatrixCollapsed = false;
 
 let modalRowsCache = [];
@@ -2751,6 +2747,7 @@ function buildInterventionsRows(eventsGlobal){
       cap_to_email_miles: Number.isFinite(miles) ? miles : null,
       software_version: sv || '',
       emailEvents: (emails > 0) ? vfArr.slice(cap) : [],
+      callEvents: vfArr.slice(0, calls),
       allEvents: allArr,
       vfEvents: vfArr
     });
@@ -2758,32 +2755,26 @@ function buildInterventionsRows(eventsGlobal){
   return rows;
 }
 
-function sortInterventionsRows(rows){
+function sortInterventionsFleets(fleetGroups){
   const col = intSort.col;
   const dir = intSort.dir;
   const mul = (dir === 'asc') ? 1 : -1;
   const str = (x) => String(x ?? '').toLowerCase();
-  const out = [...rows];
+  const out = [...fleetGroups];
 
-  out.sort((a,b) => {
-    if(col === 'dateISO' || col === 'shift' || col === 'fleet' || col === 'vehicle' || col === 'software_version'){
-      const av = str(a[col]);
-      const bv = str(b[col]);
-      if(av === bv) return str(a.vehicle).localeCompare(str(b.vehicle)) * mul;
-      return av.localeCompare(bv) * mul;
+  out.sort((a, b) => {
+    if(col === 'fleet'){
+      return str(a.fleet).localeCompare(str(b.fleet)) * mul;
     }
-
-    if(col === 'cap_time' || col === 'last_email_time'){
-      const av = Number.isFinite(a[col + '_ms']) ? a[col + '_ms'] : -Infinity;
-      const bv = Number.isFinite(b[col + '_ms']) ? b[col + '_ms'] : -Infinity;
-      if(av === bv) return str(a.vehicle).localeCompare(str(b.vehicle)) * mul;
+    const numCols = ['verified_total','calls','emails'];
+    if(numCols.includes(col)){
+      const av = Number(a[col] ?? -Infinity);
+      const bv = Number(b[col] ?? -Infinity);
+      if(av === bv) return str(a.fleet).localeCompare(str(b.fleet)) * mul;
       return (av - bv) * mul;
     }
-
-    const av = Number(a[col] ?? -Infinity);
-    const bv = Number(b[col] ?? -Infinity);
-    if(av === bv) return str(a.vehicle).localeCompare(str(b.vehicle)) * mul;
-    return (av - bv) * mul;
+    // For any other column fall back to fleet name
+    return str(a.fleet).localeCompare(str(b.fleet)) * mul;
   });
 
   return out;
@@ -2846,41 +2837,80 @@ function renderInterventionsTab(eventsGlobal){
     {k:`Median Miles (CAP → Last Email)`, v: medCapToEmailMiles !== null ? Number(medCapToEmailMiles).toFixed(2) : 'N/A'}
   ].map(x => `<div class="kpi"><div class="k">${esc(x.k)}</div><div class="v">${esc(x.v)}</div></div>`).join('');
 
-  const rows = sortInterventionsRows(allRows);
-  intRowByKey = new Map(rows.map(r => [r.key, r]));
+  // Build fleet groups
+  const fleetMap = new Map();
+  for(const r of allRows){
+    if(!fleetMap.has(r.fleet)){
+      fleetMap.set(r.fleet, { fleet: r.fleet, verified_total: 0, calls: 0, emails: 0, shifts: [] });
+    }
+    const fg = fleetMap.get(r.fleet);
+    fg.verified_total += r.verified_total || 0;
+    fg.calls += r.calls || 0;
+    fg.emails += r.emails || 0;
+    fg.shifts.push(r);
+  }
 
-  tbody.innerHTML = rows.map(r => {
-    const fmtNum = (x, d=5) => Number.isFinite(x) ? Number(x).toFixed(d) : '';
-    const fmtMiles = (x) => Number.isFinite(x) ? Number(x).toFixed(2) : '';
+  // Sort vehicle-shift rows within each fleet: date asc, then shift asc, then vehicle asc
+  for(const fg of fleetMap.values()){
+    fg.shifts.sort((a, b) => {
+      if(a.dateISO !== b.dateISO) return a.dateISO.localeCompare(b.dateISO);
+      if(a.shift !== b.shift) return a.shift.localeCompare(b.shift);
+      return String(a.vehicle).localeCompare(String(b.vehicle));
+    });
+  }
 
-    const emailsClickable = (r.emails||0) > 0;
-    const emailsCell = emailChipHTML(
-      (r.emails == null ? null : r.emails),
-      emailsClickable,
-      r.key
-    );
+  const fleetGroups = sortInterventionsFleets(Array.from(fleetMap.values()));
+  intRowByKey = new Map(allRows.map(r => [r.key, r]));
 
-    const vfCell = `<span class="link" data-intdrill="verified_fatigue" data-key="${esc(r.key)}" title="Click to download verified valid fatigue events CSV">${(r.verified_total||0).toLocaleString()}</span>`;
+  const fmtNum = (x, d=5) => Number.isFinite(x) ? Number(x).toFixed(d) : '';
+  const fmtMiles = (x) => Number.isFinite(x) ? Number(x).toFixed(2) : '';
+  const TOTAL_COLS = 13;
 
-    return `
-      <tr>
+  const html = [];
+  for(const fg of fleetGroups){
+    const isExpanded = expandedIntFleets.has(fg.fleet);
+    html.push(`<tr class="fleet-row" data-int-fleet="${esc(fg.fleet)}" style="cursor:pointer;">
+      <td colspan="3">
+        <span class="expand${isExpanded ? ' on' : ''}">▶</span>
+        <strong>${esc(fg.fleet)}</strong>
+        <span class="badge badge-info">${fg.shifts.length} shift${fg.shifts.length !== 1 ? 's' : ''}</span>
+      </td>
+      <td class="num">${fg.verified_total.toLocaleString()}</td>
+      <td class="num">${fg.calls.toLocaleString()}</td>
+      <td class="num">${fg.emails.toLocaleString()}</td>
+      <td colspan="${TOTAL_COLS - 6}"></td>
+    </tr>`);
+
+    for(const r of fg.shifts){
+      const vfCell = `<span class="link" data-intdrill="verified_fatigue" data-key="${esc(r.key)}" title="Click to view verified valid fatigue events">${(r.verified_total||0).toLocaleString()}</span>`;
+      const callsCell = (r.calls||0) > 0
+        ? `<span class="link" data-intdrill="calls" data-key="${esc(r.key)}" title="Click to view call events">${(r.calls||0).toLocaleString()}</span>`
+        : `${(r.calls||0).toLocaleString()}`;
+      const emailsCell = emailChipHTML(r.emails == null ? null : r.emails, true, r.key);
+
+      html.push(`<tr class="asset-row${isExpanded ? ' visible' : ''}" data-int-fleet="${esc(fg.fleet)}">
+        <td style="padding-left:28px; color:#555;">└─ ${esc(r.vehicle)}</td>
         <td>${esc(r.dateISO)}</td>
         <td>${esc(r.shift)}</td>
-        <td>${esc(r.fleet)}</td>
-        <td>${esc(r.vehicle)}</td>
         <td class="num">${vfCell}</td>
-        <td class="num">${(r.calls||0).toLocaleString()}</td>
+        <td class="num">${callsCell}</td>
         <td class="num">${emailsCell}</td>
         <td>${esc(r.cap_time)}</td>
         <td>${esc(r.last_email_time)}</td>
-        <td class="num" data-coord="true">${fmtNum(r.cap_lat)}</td>
-        <td class="num" data-coord="true">${fmtNum(r.cap_lon)}</td>
-        <td class="num" data-coord="true">${fmtNum(r.email_lat)}</td>
-        <td class="num" data-coord="true">${fmtNum(r.email_lon)}</td>
+        <td class="num">${fmtNum(r.cap_lat)}</td>
+        <td class="num">${fmtNum(r.cap_lon)}</td>
+        <td class="num">${fmtNum(r.email_lat)}</td>
+        <td class="num">${fmtNum(r.email_lon)}</td>
         <td class="num">${fmtMiles(r.cap_to_email_miles)}</td>
-      </tr>
-    `;
-  }).join('');
+      </tr>`);
+    }
+  }
+  tbody.innerHTML = html.join('');
+
+  // Attach expand/collapse listeners to fleet rows
+  tbody.querySelectorAll('.fleet-row[data-int-fleet]').forEach(tr => {
+    tr.addEventListener('click', () => toggleIntFleet(tr.getAttribute('data-int-fleet')));
+  });
 }
 
 /* Emails drilldown */
@@ -2917,6 +2947,25 @@ document.addEventListener('click', (e) => {
   const title = `Interventions Evidence — Verified Valid Fatigue — ${row.fleet} / ${row.vehicle} — ${row.dateISO} (${row.shift})`;
   const sub = `All verified valid fatigue events for this vehicle-shift. Network filters applied (weeks/date/fleet/vehicle).`;
   const dl = `${row.fleet}_${row.vehicle}_${row.dateISO}_${row.shift}_verified_fatigue.csv`.replace(/\s+/g,'_');
+
+  openEvidenceModal(title, sub, rowsToShow, dl);
+});
+
+/* Calls drilldown */
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-intdrill="calls"]');
+  if(!el) return;
+  const key = el.getAttribute('data-key');
+  if(!key) return;
+
+  const row = intRowByKey.get(key);
+  if(!row) return;
+
+  const cap = getInterventionCap();
+  const rowsToShow = row.callEvents || [];
+  const title = `Interventions Evidence — Calls (first ${cap} verified fatigue) — ${row.fleet} / ${row.vehicle} — ${row.dateISO} (${row.shift})`;
+  const sub = `Call events are the first ${cap} verified valid fatigue events for this vehicle-shift. Network filters applied.`;
+  const dl = `${row.fleet}_${row.vehicle}_${row.dateISO}_${row.shift}_calls.csv`.replace(/\s+/g,'_');
 
   openEvidenceModal(title, sub, rowsToShow, dl);
 });
@@ -3447,7 +3496,7 @@ document.querySelector('#interventionsTab thead').addEventListener('click', (e) 
   } else {
     intSort.col = col;
     intSort.dir = 'desc';
-    if(['dateISO','shift','fleet','vehicle','software_version','cap_time','last_email_time'].includes(col)) intSort.dir = 'asc';
+    if(col === 'fleet') intSort.dir = 'asc';
   }
 
   clearSortClasses('#interventionsTab thead th[data-icol]');
@@ -5008,18 +5057,18 @@ function _renderFovWowStrip(eventsGlobal, weeks){
   `;
 }
 
-function _toggleIntCoords(){
-  showIntCoords = !showIntCoords;
-  const btn = document.getElementById('int-toggle-coords');
-  if(btn) btn.textContent = showIntCoords ? 'Hide Coordinates' : 'Show Coordinates';
-  _applyIntCoordsVisibility();
+function toggleIntFleet(fleetName){
+  if(expandedIntFleets.has(fleetName)) expandedIntFleets.delete(fleetName);
+  else expandedIntFleets.add(fleetName);
+  const fleetRow = document.querySelector(`#int-body tr.fleet-row[data-int-fleet="${CSS.escape(fleetName)}"]`);
+  if(fleetRow){
+    const icon = fleetRow.querySelector('.expand');
+    if(icon) icon.classList.toggle('on', expandedIntFleets.has(fleetName));
+  }
+  document.querySelectorAll(`#int-body tr.asset-row[data-int-fleet="${CSS.escape(fleetName)}"]`).forEach(r => {
+    r.classList.toggle('visible', expandedIntFleets.has(fleetName));
+  });
   schedulePersist();
-}
-
-function _applyIntCoordsVisibility(){
-  const disp = showIntCoords ? '' : 'none';
-  document.querySelectorAll('#interventionsTab thead th[data-coord]').forEach(th => th.style.display = disp);
-  document.querySelectorAll('#int-body td[data-coord]').forEach(td => td.style.display = disp);
 }
 
 function _renderCoachingOverdueBanner(){
@@ -5911,9 +5960,6 @@ document.addEventListener('click', (e) => {
   openCoachingDrillModal(fleet, Array.from(selectedWeeks).sort());
 });
 
-// Coords toggle
-document.getElementById('int-toggle-coords')?.addEventListener('click', _toggleIntCoords);
-
 // Fleet alert coaching link
 document.getElementById('fleet-alert-coaching-link')?.addEventListener('click', () => setActiveTab('coachingTab'));
 
@@ -6268,6 +6314,7 @@ document.getElementById('reset-filters').addEventListener('click', () => {
   // expansion + sorts
   expandedFleets = new Set();
   expandedFovFleets = new Set();
+  expandedIntFleets = new Set();
   sortState = { col:null, dir:'asc' };
   fovSort = { col:'events_count', dir:'desc' };
   intSort = { col:'verified_total', dir:'desc' };
@@ -6300,6 +6347,7 @@ document.getElementById('clear-data').addEventListener('click', async () => {
 
   expandedFleets = new Set();
   expandedFovFleets = new Set();
+  expandedIntFleets = new Set();
 
   try { await idbClear(); } catch(_){}
   try { localStorage.removeItem(LS_KEY); } catch(_){}
