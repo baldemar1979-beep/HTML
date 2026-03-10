@@ -5056,8 +5056,8 @@ function renderCoachingTab(eventsGlobal){
   const weeks = Array.from(selectedWeeks).sort();
   const hasData = rawEvents.length > 0 && weeks.length > 0;
 
-  const noDataSections = ['coaching-fov-tbody','coaching-priority-tbody'];
-  const noDataMsgs = ['coaching-fov-nodata','coaching-priority-nodata'];
+  const noDataSections = ['coaching-priority-tbody'];
+  const noDataMsgs = ['coaching-priority-nodata'];
 
   if(!hasData){
     noDataSections.forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=''; });
@@ -5152,7 +5152,6 @@ function renderCoachingTab(eventsGlobal){
   _renderPersistentRedZoneAlert(riskResults, weeks);
   _renderCoachingPrecisionTable(fleetData, weeks);
   _renderCoachingPriorityMatrix(fleetData, latestWeek);
-  _renderCoachingFovRepeatOffenders(eventsGlobal, weeks);
   renderCoachingActionLog();
 }
 
