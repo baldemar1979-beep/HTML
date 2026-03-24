@@ -256,12 +256,11 @@
       <!-- CAP -->
       <div class="block small">
         <details open>
-          <summary>Max Calls / Shift (CAP)</summary>
+          <summary>Max Calls per 6-hr Window (CAP)</summary>
           <div class="fg" style="margin-top:10px;">
-            <input type="text" id="int-cap-text" value="10" inputmode="numeric" />
+            <input type="text" id="int-cap-text" value="4" inputmode="numeric" />
             <div class="hint">
-              Cap applied to <strong>verified valid fatigue</strong> per vehicle-shift per day.<br/>
-              Calls = min(CAP, Verified). Emails = max(0, Verified − CAP).
+              Guardian Center makes up to <strong>4 calls</strong> per vehicle in any rolling 6-hour window. Once the CAP is reached, only emails are sent for the remainder of that window. After 6 hours from the first call, the window resets and calls can resume.
             </div>
           </div>
         </details>
@@ -278,7 +277,7 @@
             </div>
             <div class="fg" style="flex:1; min-width:160px;">
               <label style="font-size:12px; font-weight:600;">DFIT Window (minutes)</label>
-              <input type="number" id="dfit-window-text" value="60" min="1" max="1440" />
+              <input type="number" id="dfit-window-text" value="360" min="1" max="1440" />
             </div>
           </div>
           <div class="hint">
@@ -326,7 +325,7 @@
       <div class="int-kpi-title">CAP KPI Summary (current Network Filters)</div>
       <div class="kpi-grid" id="int-kpis"></div>
       <div class="int-footnote">
-        Counts are shown with % in the same tile (count + percent), using <strong>Total Verified Valid Fatigue</strong> as the denominator.<br/>
+        Counts reflect <strong>15-min grouped events</strong> (when toggle ON) with a <strong>rolling 6-hour CAP</strong>. Each group = one Guardian Center call attempt. <strong>Est. Calls/Day</strong> and <strong>Est. Calls/Week</strong> are averages across the selected date range.<br/>
         <strong>Emails</strong> cell is clickable (opens evidence + downloadable CSV).
       </div>
     </div>
@@ -338,8 +337,9 @@
       <div class="subnote">
         A <strong>vehicle-shift</strong> is one vehicle on one calendar day in either <strong>Day (06:01–19:59)</strong> or <strong>Night (20:00–06:00)</strong>.<br/>
         <strong>Total Events</strong> includes all events in that vehicle-shift after Network Filters. <strong>Verified Valid Fatigue</strong> includes verified microsleep + verified drowsiness only.<br/>
-        <strong>Event Groups</strong> counts 15-minute clusters of verified fatigue events (only when 15-min toggle is ON). <strong>DFIT Calls</strong> counts rolling-window triggers where ≥ DFIT Cap events occur within the DFIT window.<br/>
-        <strong>Cap→Email Miles</strong> uses straight-line (haversine) distance from the CAP event location to the last email-event location (when both have lat/lon).
+        <strong>Event Groups</strong> counts 15-minute clusters of verified fatigue events — each group represents one intervention event (one Guardian Center call). <strong>Avg Alerts/Group</strong> shows the average number of raw verified alerts per cluster.<br/>
+        <strong>Calls (Primary)</strong> = groups within the CAP per 6-hour rolling window. <strong>Emails</strong> = groups beyond the CAP per window (Guardian Center sends email instead of calling). <strong>DFIT Calls</strong> = separate partner calls triggered when ≥ DFIT Cap groups occur within the DFIT window.<br/>
+        <strong>Cap→Email Miles</strong> uses straight-line (haversine) distance from the last CAP call event to the last email-event location (when both have lat/lon).
       </div>
 
       <div class="table-wrap" style="margin-top:10px;">
@@ -353,6 +353,7 @@
               <th class="num sortable" data-icol="total_events">Total Events</th>
               <th class="num sortable" data-icol="verified_total">Verified Valid Fatigue</th>
               <th class="num sortable" data-icol="event_groups" id="th-event-groups">Event Groups</th>
+              <th class="num sortable" data-icol="avg_alerts_per_group" id="th-avg-alerts">Avg Alerts/Group</th>
               <th class="num sortable" data-icol="calls">Calls (Primary)</th>
               <th class="num sortable" data-icol="dfit_calls">DFIT Calls</th>
               <th class="num sortable" data-icol="emails">Emails</th>
@@ -1019,7 +1020,7 @@ function filterEventsNetworkOnly(){
 function getInterventionCap(){
   const raw = (document.getElementById('int-cap-text')?.value || '').trim();
   const n = parseInt(raw, 10);
-  if(!Number.isFinite(n) || n <= 0) return 10;
+  if(!Number.isFinite(n) || n <= 0) return 4;
   return Math.min(99, n);
 }
 function getDfitCap(){
@@ -1031,7 +1032,7 @@ function getDfitCap(){
 function getDfitWindowMs(){
   const raw = (document.getElementById('dfit-window-text')?.value || '').trim();
   const n = parseInt(raw, 10);
-  if(!Number.isFinite(n) || n <= 0) return 60 * 60 * 1000;
+  if(!Number.isFinite(n) || n <= 0) return 360 * 60 * 1000;
   return Math.min(1440, n) * 60 * 1000;
 }
 function get15MinToggle(){
@@ -1086,6 +1087,34 @@ function computeDfitCalls(vfArr, dfitCap, dfitWindowMs){
   return dfitCalls;
 }
 
+/**
+ * Given a sorted array of timestamps (one per group/event),
+ * apply a rolling window CAP and return { calls, emails }.
+ * Each time a new window starts (at the first uncapped timestamp),
+ * up to `cap` events in the next `windowMs` are counted as calls;
+ * any beyond cap in that window are emails.
+ * After the window closes, a new window starts at the next event.
+ */
+function applyCapWindows(timestamps, cap, windowMs) {
+  if (!timestamps.length || cap <= 0) return { calls: 0, emails: 0 };
+  let calls = 0, emails = 0;
+  let i = 0;
+  while (i < timestamps.length) {
+    const windowStart = timestamps[i];
+    const windowEnd = windowStart + windowMs;
+    let countInWindow = 0;
+    let j = i;
+    while (j < timestamps.length && timestamps[j] < windowEnd) {
+      countInWindow++;
+      j++;
+    }
+    calls += Math.min(cap, countInWindow);
+    emails += Math.max(0, countInWindow - cap);
+    i = j; // advance past this window
+  }
+  return { calls, emails };
+}
+
 /* =======================================================================================
    SECTION: Build Interventions Rows
 ======================================================================================= */
@@ -1127,11 +1156,42 @@ function buildInterventionsRows(eventsGlobal){
     const verified_total = vfArr.length;
     if(verified_total <= 0) continue;
 
-    const calls = Math.min(cap, verified_total);
-    const emails = Math.max(0, verified_total - cap);
+    // Event Groups (15-min clustering)
+    const event_groups = use15min ? computeEventGroups(vfArr) : null;
 
-    const capEvent = (verified_total >= cap) ? vfArr[cap-1] : null;
-    const lastEmail = (emails > 0) ? vfArr[vfArr.length - 1] : null;
+    let calls, emails, capEvent, lastEmail;
+
+    if (use15min && vfArr.length > 0) {
+      // Build group representative timestamps (first event of each 15-min cluster)
+      const groupTimestamps = [];
+      const groupFirstEvents = [];
+      let groupStart = vfArr[0];
+      groupTimestamps.push(groupStart.dt_ms);
+      groupFirstEvents.push(groupStart);
+      for (let i = 1; i < vfArr.length; i++) {
+        if (vfArr[i].dt_ms - vfArr[i - 1].dt_ms > 900000) {
+          groupStart = vfArr[i];
+          groupTimestamps.push(groupStart.dt_ms);
+          groupFirstEvents.push(groupStart);
+        }
+      }
+      const result = applyCapWindows(groupTimestamps, cap, dfitWindowMs);
+      calls = result.calls;
+      emails = result.emails;
+      // capEvent = the event at the cap boundary (last call group's first event)
+      capEvent = calls > 0 ? groupFirstEvents[Math.min(calls, groupFirstEvents.length) - 1] : null;
+      lastEmail = emails > 0 ? groupFirstEvents[groupFirstEvents.length - 1] : null;
+    } else {
+      // Original per-shift behavior
+      calls = Math.min(cap, verified_total);
+      emails = Math.max(0, verified_total - cap);
+      capEvent = (verified_total >= cap) ? vfArr[cap - 1] : null;
+      lastEmail = (emails > 0) ? vfArr[vfArr.length - 1] : null;
+    }
+
+    const avg_alerts_per_group = (use15min && event_groups > 0)
+      ? Math.round((verified_total / event_groups) * 10) / 10
+      : null;
 
     const capLat = capEvent?.latitude ?? null;
     const capLon = capEvent?.longitude ?? null;
@@ -1140,9 +1200,6 @@ function buildInterventionsRows(eventsGlobal){
     const miles = (emails > 0) ? haversineMiles(capLat, capLon, emailLat, emailLon) : null;
 
     const sv = vehicleVersionFromEvents(allArr.slice().sort((a,b)=>a.dt_ms - b.dt_ms));
-
-    // Event Groups (15-min clustering)
-    const event_groups = use15min ? computeEventGroups(vfArr) : null;
 
     // DFIT Calls
     const dfit_calls = computeDfitCalls(vfArr, dfitCap, dfitWindowMs);
@@ -1153,6 +1210,7 @@ function buildInterventionsRows(eventsGlobal){
       total_events: allArr.length,
       verified_total,
       event_groups,
+      avg_alerts_per_group,
       calls,
       dfit_calls,
       emails,
@@ -1166,7 +1224,7 @@ function buildInterventionsRows(eventsGlobal){
       email_lon: Number.isFinite(emailLon) ? emailLon : null,
       cap_to_email_miles: Number.isFinite(miles) ? miles : null,
       software_version: sv || '',
-      emailEvents: (emails > 0) ? vfArr.slice(cap) : []
+      emailEvents: (emails > 0) ? vfArr.slice(calls) : []
     });
   }
   return rows;
@@ -1266,6 +1324,7 @@ function renderInterventionsTab(eventsGlobal){
   // Update Event Groups column header
   const thGroups = document.getElementById('th-event-groups');
   if(thGroups) thGroups.style.opacity = use15min ? '1' : '0.5';
+  if(thGroups && use15min) thGroups.title = '15-min clusters of verified fatigue events. Each group = 1 intervention event (1 call).';
 
   const allRows = applyEmailBucketFilter(allRowsRaw);
 
@@ -1283,14 +1342,30 @@ function renderInterventionsTab(eventsGlobal){
   const totalShifts = allRows.length;
   const totalDfitCalls = allRows.reduce((s,r)=> s + (r.dfit_calls||0), 0);
   const dfitShifts = allRows.filter(r => (r.dfit_calls||0) > 0).length;
+  const totalCalls = allRows.reduce((s,r)=> s + (r.calls||0), 0);
+  const totalGroups = use15min ? allRows.reduce((s,r)=> s + (r.event_groups||0), 0) : 0;
 
-  kpis.innerHTML = [
+  const uniqueDays = new Set(allRows.map(r => r.dateISO)).size || 1;
+  const uniqueWeeks = new Set(currentNetworkFilteredEvents.map(e => e.fileWeek).filter(Boolean)).size || 1;
+  const estCallsPerDay = totalCalls / uniqueDays;
+  const estCallsPerWeek = totalCalls / uniqueWeeks;
+
+  const kpiTiles = [
     {k:`Total Verified Valid Fatigue`, v: `${totalVerified.toLocaleString()} (100%)`},
     {k:`Day Verified`, v: `${dayVerified.toLocaleString()} (${pct(dayVerified,totalVerified)}%)`},
     {k:`Night Verified`, v: `${nightVerified.toLocaleString()} (${pct(nightVerified,totalVerified)}%)`},
-    {k:`Vehicle-shifts ≥ CAP (${cap})`, v: `${capShifts.toLocaleString()} (${pct(capShifts,totalShifts)}% of shifts)`},
+    {k:`Vehicle-shifts ≥ CAP (${cap} calls/6hr)`, v: `${capShifts.toLocaleString()} (${pct(capShifts,totalShifts)}% of shifts)`},
     {k:`Total DFIT Calls`, v: `${totalDfitCalls.toLocaleString()} (${pct(dfitShifts,totalShifts)}% of shifts triggered)`}
-  ].map(x => `<div class="kpi"><div class="k">${esc(x.k)}</div><div class="v">${esc(x.v)}</div></div>`).join('');
+  ];
+  if(use15min && rawEvents.length > 0){
+    kpiTiles.push({k:`Total 15-min Groups`, v: `${totalGroups.toLocaleString()}`});
+  }
+  if(rawEvents.length > 0){
+    kpiTiles.push({k:`Est. Calls/Day`, v: `${estCallsPerDay.toFixed(1)} calls/day`});
+    kpiTiles.push({k:`Est. Calls/Week`, v: `${estCallsPerWeek.toFixed(1)} calls/week`});
+  }
+
+  kpis.innerHTML = kpiTiles.map(x => `<div class="kpi"><div class="k">${esc(x.k)}</div><div class="v">${esc(x.v)}</div></div>`).join('');
 
   const rows = sortInterventionsRows(allRows);
   intRowByKey = new Map(rows.map(r => [r.key, r]));
@@ -1309,6 +1384,9 @@ function renderInterventionsTab(eventsGlobal){
     const groupsCell = use15min
       ? (r.event_groups != null ? r.event_groups.toLocaleString() : '—')
       : '—';
+    const avgCell = (use15min && r.avg_alerts_per_group != null)
+      ? r.avg_alerts_per_group.toFixed(1)
+      : '—';
 
     return `
       <tr>
@@ -1319,6 +1397,7 @@ function renderInterventionsTab(eventsGlobal){
         <td class="num">${(r.total_events||0).toLocaleString()}</td>
         <td class="num">${(r.verified_total||0).toLocaleString()}</td>
         <td class="num">${esc(groupsCell)}</td>
+        <td class="num">${esc(avgCell)}</td>
         <td class="num">${(r.calls||0).toLocaleString()}</td>
         <td class="num">${dfitChipHTML(r.dfit_calls||0)}</td>
         <td class="num">${emailsCell}</td>
@@ -1502,9 +1581,9 @@ document.getElementById('reset-filters').addEventListener('click', () => {
   document.getElementById('vehicle').value = '';
   document.getElementById('ds').value = '';
   document.getElementById('de').value = '';
-  document.getElementById('int-cap-text').value = '10';
+  document.getElementById('int-cap-text').value = '4';
   document.getElementById('dfit-cap-text').value = '3';
-  document.getElementById('dfit-window-text').value = '60';
+  document.getElementById('dfit-window-text').value = '360';
   document.getElementById('group-15min').checked = true;
 
   weeksManuallyChanged = false;
