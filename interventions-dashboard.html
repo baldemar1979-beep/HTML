@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Interventions Dashboard</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; background:#f5f7fa; padding:18px; }
+    .container { max-width:1950px; margin:0 auto; }
+
+    .header { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+    h1 { color:#2c3e50; font-size:22px; }
+
+    .date-display { font-size:14px; font-weight:950; color:#2c3e50; background:#fff; padding:8px 12px; border-radius:12px; box-shadow:0 2px 4px rgba(0,0,0,0.08); }
+    .info{
+      background:#e8f4f8; border-left:4px solid #3498db; padding:10px 12px; margin: 8px 0 14px;
+      font-size:13px; color:#34495e; line-height:1.35; border-radius:10px;
+    }
+    .error { display:none; background:#fff3f3; border-left:4px solid #e74c3c; padding:12px; border-radius:10px; color:#7b241c; margin-bottom: 12px; }
+    .error code { background:#fbeaea; padding:2px 6px; border-radius:4px; }
+
+    /* ========= TOP CONTROLS ========= */
+    .controls{
+      background:#fff; padding:14px 18px; border-radius:14px; box-shadow:0 2px 4px rgba(0,0,0,0.08);
+      margin-bottom:14px; display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+    }
+    .controls-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      width: 100%;
+    }
+    .controls-title {
+      font-weight: 950;
+      color: #2c3e50;
+      font-size: 16px;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+    }
+    .block { min-width: 260px; flex: 1 1 320px; }
+    .block.small { flex: 0 1 260px; min-width: 240px; }
+    .block.wide { flex: 2 1 520px; min-width: 420px; }
+    .fg { display:flex; flex-direction:column; }
+    .fg label { font-weight:950; margin-bottom:6px; color:#2c3e50; font-size:13px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; }
+    .fg select, .fg input { padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; }
+    .hint { font-size:12px; color:#7f8c8d; margin-top:6px; line-height:1.3; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; }
+    .btnrow { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .btn { cursor:pointer; border:1px solid #ddd; background:#fff; border-radius:12px; padding:8px 12px; font-weight:950; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; }
+    .btn:hover { background:#f7f7f7; }
+
+    .panel{ border:1px solid #eee; border-radius:14px; padding:8px; height: 170px; overflow:auto; background:#fafafa; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; }
+    .item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 6px; border-bottom:1px solid #eee; font-size:13px; color:#2c3e50; }
+    .item:last-child { border-bottom:none; }
+    .left { display:flex; align-items:center; gap:10px; }
+    .count { color:#7f8c8d; font-size:12px; }
+    details { background:#fff; border:1px solid #eee; border-radius:14px; padding:10px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; }
+    summary { cursor:pointer; font-weight:950; color:#2c3e50; user-select:none; font-size:13px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; }
+    summary:hover { color:#1a252f; }
+    .block details { background:#fff; border:1px solid #e0e0e0; margin:0; }
+    .block summary { padding:8px 0; }
+
+    /* ===== Custom Upload ===== */
+    #csv-upload { display:none; }
+    .uploader{
+      border:1px solid #ddd; border-radius:14px; padding:10px; background:#fafafa; height: 170px;
+      display:flex; flex-direction:column; justify-content:flex-start; gap:8px;
+    }
+    .upload-top { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .upload-btn{
+      cursor:pointer; border:1px solid #ddd; background:#fff; border-radius:12px; padding:8px 12px;
+      font-weight:950; display:inline-flex; align-items:center; gap:8px; user-select:none;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+    }
+    .upload-btn:hover { background:#f7f7f7; }
+    .file-status{ font-size:12px; color:#7f8c8d; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .upload-actions { display:flex; gap:10px; flex-wrap:wrap; }
+
+    .section-title { margin: 12px 2px 10px; color:#2c3e50; font-weight:1000; font-size:16px; }
+    .card{ background:#fff; padding:12px 14px; border-radius:14px; box-shadow:0 2px 4px rgba(0,0,0,0.08); border:1px solid #f0f0f0; margin-bottom:14px; }
+
+    .table-wrap { background:#fff; border-radius:14px; box-shadow:0 2px 4px rgba(0,0,0,0.08); overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; }
+    thead { background:#34495e; color:#fff; position:sticky; top:0; z-index:10; }
+    th { padding:12px; text-align:left; font-weight:950; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; white-space:nowrap; cursor:pointer; user-select:none; }
+    th:hover { background:#2c3e50; }
+    th.sortable::after { content:' ⇅'; opacity:0.5; }
+    th.sort-asc::after { content:' ↑'; opacity:1; }
+    th.sort-desc::after { content:' ↓'; opacity:1; }
+
+    tbody tr { border-bottom:1px solid #ecf0f1; transition: background-color 0.2s; }
+    tbody tr:hover { background:#f8f9fa; }
+    td { padding:12px; font-size:14px; color:#2c3e50; }
+
+    .badge { display:inline-block; padding:3px 8px; border-radius:999px; font-size:11px; font-weight:1000; }
+    .badge-info { background:#d1ecf1; color:#0c5460; }
+
+    .ver-badge { background:#eef2f5; color:#2c3e50; }
+    .ver-up { background:#e6f7e6; color:#1e5631; }
+    .ver-old { background:#fff4cc; color:#7a5a00; }
+    .ver-na { background:#f1f1f1; color:#7f8c8d; }
+
+    .num { text-align:right; font-variant-numeric: tabular-nums; }
+    .no-data { text-align:center; padding:40px; color:#95a5a6; font-size:16px; display:none; }
+
+    /* KPI grid */
+    .kpi-grid { display:flex; flex-wrap:wrap; gap:10px; }
+    .kpi-row { display:flex; flex-wrap:wrap; gap:10px; width:100%; }
+    .kpi { flex: 1 1 180px; background:#fafafa; border:1px solid #eee; border-radius:14px; padding:10px 12px; min-width: 220px; }
+    .kpi .k { font-size:11px; color:#7f8c8d; text-transform:uppercase; letter-spacing:0.5px; }
+    .kpi .v { font-size:18px; font-weight:1000; color:#2c3e50; margin-top:6px; }
+
+    /* Interventions header layout */
+    .int-header{
+      background:#fff; border-radius:14px; box-shadow:0 2px 4px rgba(0,0,0,0.08);
+      padding:14px 18px; margin-bottom:14px;
+    }
+    .int-row{ display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start; }
+    .int-left{ flex: 0 1 400px; min-width: 320px; }
+    .int-right{ flex: 1 1 900px; min-width: 520px; }
+    .int-kpi-title{ font-size:13px; font-weight:1000; color:#2c3e50; margin-bottom:8px; }
+    .int-footnote{ font-size:12px; color:#7f8c8d; margin-top:10px; }
+
+    /* Clickable count */
+    .link { color:#1f5fa9; font-weight:1000; text-decoration:underline; text-underline-offset: 3px; cursor:pointer; }
+
+    /* chips */
+    .chip { display:inline-block; padding:6px 10px; border-radius:10px; font-weight:1000; font-size:13px; }
+    .chip-red { background:#ffe5e5; color:#7b241c; }
+    .chip-yellow { background:#fff4cc; color:#7a5a00; }
+    .chip-green { background:#e6f7e6; color:#1e5631; }
+    .chip-na { background:#eef2f5; color:#2c3e50; }
+
+    /* Email chips */
+    .email-chip { display:inline-block; padding:6px 10px; border-radius:10px; font-weight:1000; font-size:13px; }
+    .email-low { background:#eef2f5; color:#2c3e50; }   /* grey */
+    .email-med { background:#fff4cc; color:#7a5a00; }   /* yellow */
+    .email-high { background:#ffe5e5; color:#7b241c; }  /* red */
+    .email-na { background:#f1f1f1; color:#7f8c8d; }    /* NA */
+
+    /* DFIT chips */
+    .dfit-chip { display:inline-block; padding:6px 10px; border-radius:10px; font-weight:1000; font-size:13px; }
+    .dfit-hit  { background:#ffe5e5; color:#7b241c; }   /* red — DFIT triggered */
+    .dfit-none { background:#eef2f5; color:#2c3e50; }   /* grey — no DFIT */
+
+    .subnote { font-size:12px; color:#7f8c8d; margin-top:6px; line-height:1.35; }
+
+    /* ===== Evidence modal ===== */
+    .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,0.35); display:none; align-items:center; justify-content:center; padding:20px; z-index:9999; }
+    .modal{ width:min(1200px, 98vw); max-height: 88vh; background:#fff; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.25); overflow:hidden; display:flex; flex-direction:column; border:1px solid #eee; }
+    .modal-header{ padding:12px 14px; background:#f8fafc; border-bottom:1px solid #eee; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .modal-title{ font-size:14px; font-weight:1000; color:#2c3e50; line-height:1.25; }
+    .modal-sub{ margin-top:6px; font-size:12px; color:#7f8c8d; line-height:1.35; }
+    .modal-actions{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:flex-end; }
+    .modal-body{ padding:12px 14px; overflow:auto; background:#fff; }
+    .modal-close{ cursor:pointer; border:1px solid #ddd; background:#fff; border-radius:12px; padding:8px 12px; font-weight:950; }
+    .modal-close:hover{ background:#f7f7f7; }
+    .modal-btn{ cursor:pointer; border:1px solid #ddd; background:#fff; border-radius:12px; padding:8px 12px; font-weight:950; }
+    .modal-btn:hover{ background:#f7f7f7; }
+    .mini{ font-size:12px; color:#7f8c8d; }
+    .small-table-wrap{ border:1px solid #eee; border-radius:14px; overflow:hidden; }
+    .small-table-wrap table thead{ position:sticky; top:0; }
+    .small-table-wrap th{ cursor:default; }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Interventions Dashboard</h1>
+      <div class="date-display" id="date-display">Upload CSV(s)</div>
+    </div>
+
+    <div id="error" class="error"></div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="controls-header">
+        <div class="controls-title">Controls <button class="btn" id="reset-filters" type="button">Reset Filters</button></div>
+      </div>
+
+      <!-- Upload -->
+      <div class="block small">
+        <details open>
+          <summary>Upload Weekly CSV(s)</summary>
+          <div class="fg" style="margin-top:10px;">
+            <div class="upload-top">
+              <label class="upload-btn" for="csv-upload">Choose Files</label>
+              <button class="btn" id="clear-data" type="button">Clear Data</button>
+              <input type="file" id="csv-upload" accept=".csv" multiple />
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Report Week -->
+      <div class="block small">
+        <details open>
+          <summary>Report Week</summary>
+          <div class="fg" style="margin-top:10px;">
+            <div id="week-panel" class="panel" style="height:160px;">
+              <div style="color:#7f8c8d;font-size:12px;">No weeks loaded yet</div>
+            </div>
+            <div class="hint">Select from uploaded files.</div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Date Range -->
+      <div class="block">
+        <details open>
+          <summary>Date Range</summary>
+          <div class="fg" style="margin-top:10px; display:flex; flex-direction:row; gap:10px; flex-wrap:wrap;">
+            <div class="fg" style="flex:1; min-width:160px;">
+              <label style="font-size:12px; font-weight:600;">Start Date</label>
+              <input type="date" id="ds" />
+              <div class="hint">Auto-populated from CSVs.</div>
+            </div>
+            <div class="fg" style="flex:1; min-width:160px;">
+              <label style="font-size:12px; font-weight:600;">End Date</label>
+              <input type="date" id="de" />
+              <div class="hint">Auto-populated from CSVs.</div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Fleet -->
+      <div class="block small">
+        <details open>
+          <summary>Fleet</summary>
+          <div class="fg" style="margin-top:10px;">
+            <input id="fleet" list="fleet-list" style="padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:#fff;" placeholder="Type to search or select...">
+            <datalist id="fleet-list">
+              <option value="">(all)</option>
+            </datalist>
+            <div class="hint">Type to search or select from list.</div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Asset -->
+      <div class="block small">
+        <details open>
+          <summary>Asset</summary>
+          <div class="fg" style="margin-top:10px;">
+            <select id="vehicle" style="padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:#fff;">
+              <option value="">(all)</option>
+            </select>
+            <div class="hint">Select vehicle.</div>
+          </div>
+        </details>
+      </div>
+
+      <!-- CAP -->
+      <div class="block small">
+        <details open>
+          <summary>Max Calls / Shift (CAP)</summary>
+          <div class="fg" style="margin-top:10px;">
+            <input type="text" id="int-cap-text" value="10" inputmode="numeric" />
+            <div class="hint">
+              Cap applied to <strong>verified valid fatigue</strong> per vehicle-shift per day.<br/>
+              Calls = min(CAP, Verified). Emails = max(0, Verified − CAP).
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- DFIT Call Cap / Window (NEW) -->
+      <div class="block">
+        <details open>
+          <summary>DFIT Call Cap / Window</summary>
+          <div class="fg" style="margin-top:10px; display:flex; flex-direction:row; gap:10px; flex-wrap:wrap;">
+            <div class="fg" style="flex:1; min-width:160px;">
+              <label style="font-size:12px; font-weight:600;">DFIT Call Cap</label>
+              <input type="number" id="dfit-cap-text" value="3" min="1" max="99" />
+            </div>
+            <div class="fg" style="flex:1; min-width:160px;">
+              <label style="font-size:12px; font-weight:600;">DFIT Window (minutes)</label>
+              <input type="number" id="dfit-window-text" value="60" min="1" max="1440" />
+            </div>
+          </div>
+          <div class="hint">
+            DFIT = Detected Fatigue Intervention Threshold. Counts verified fatigue events within a rolling window per vehicle-shift.
+          </div>
+        </details>
+      </div>
+
+      <!-- 15-min Group Window (NEW) -->
+      <div class="block small">
+        <details open>
+          <summary>15-min Group Window</summary>
+          <div class="fg" style="margin-top:10px;">
+            <label style="display:flex; align-items:center; gap:8px; font-weight:normal; cursor:pointer;">
+              <input type="checkbox" id="group-15min" checked style="width:16px; height:16px; cursor:pointer;" />
+              <span style="font-weight:950;">Group events within 15-minute windows</span>
+            </label>
+            <div class="hint">
+              When enabled, verified fatigue events within 15 minutes of each other are grouped into a single event cluster.
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Email Filter -->
+      <div class="block small">
+        <details open>
+          <summary>Email Filter</summary>
+          <div style="margin-top:10px;" class="btnrow">
+            <button class="btn" type="button" id="emails-all">Select All</button>
+            <button class="btn" type="button" id="emails-none">Clear</button>
+          </div>
+          <div id="emails-panel" class="panel" style="margin-top:10px; height:130px;">
+            <div style="color:#7f8c8d;font-size:12px;">Upload CSV(s) to enable email filtering</div>
+          </div>
+          <div class="hint">
+            Red: <strong>&gt; 20</strong> • Yellow: <strong>10–20</strong> • Grey: <strong>&lt; 10</strong> • NA stays NA.
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <!-- KPI Summary -->
+    <div class="int-header">
+      <div class="int-kpi-title">CAP KPI Summary (current Network Filters)</div>
+      <div class="kpi-grid" id="int-kpis"></div>
+      <div class="int-footnote">
+        Counts are shown with % in the same tile (count + percent), using <strong>Total Verified Valid Fatigue</strong> as the denominator.<br/>
+        <strong>Emails</strong> cell is clickable (opens evidence + downloadable CSV).
+      </div>
+    </div>
+
+    <!-- Interventions Table -->
+    <div class="section-title">Interventions — CAP KPI (per vehicle, per shift, per calendar day)</div>
+    <div class="card">
+      <h3>Vehicle-shifts (sortable)</h3>
+      <div class="subnote">
+        A <strong>vehicle-shift</strong> is one vehicle on one calendar day in either <strong>Day (06:01–19:59)</strong> or <strong>Night (20:00–06:00)</strong>.<br/>
+        <strong>Total Events</strong> includes all events in that vehicle-shift after Network Filters. <strong>Verified Valid Fatigue</strong> includes verified microsleep + verified drowsiness only.<br/>
+        <strong>Event Groups</strong> counts 15-minute clusters of verified fatigue events (only when 15-min toggle is ON). <strong>DFIT Calls</strong> counts rolling-window triggers where ≥ DFIT Cap events occur within the DFIT window.<br/>
+        <strong>Cap→Email Miles</strong> uses straight-line (haversine) distance from the CAP event location to the last email-event location (when both have lat/lon).
+      </div>
+
+      <div class="table-wrap" style="margin-top:10px;">
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable" data-icol="dateISO">Date</th>
+              <th class="sortable" data-icol="shift">Shift</th>
+              <th class="sortable" data-icol="fleet">Fleet</th>
+              <th class="sortable" data-icol="vehicle">Vehicle</th>
+              <th class="num sortable" data-icol="total_events">Total Events</th>
+              <th class="num sortable" data-icol="verified_total">Verified Valid Fatigue</th>
+              <th class="num sortable" data-icol="event_groups" id="th-event-groups">Event Groups</th>
+              <th class="num sortable" data-icol="calls">Calls (Primary)</th>
+              <th class="num sortable" data-icol="dfit_calls">DFIT Calls</th>
+              <th class="num sortable" data-icol="emails">Emails</th>
+              <th class="sortable" data-icol="cap_time">Last CAP Call</th>
+              <th class="sortable" data-icol="last_email_time">Last Email Time</th>
+              <th class="num sortable" data-icol="cap_lat">CAP Lat</th>
+              <th class="num sortable" data-icol="cap_lon">CAP Lon</th>
+              <th class="num sortable" data-icol="email_lat">Email Lat</th>
+              <th class="num sortable" data-icol="email_lon">Email Lon</th>
+              <th class="num sortable" data-icol="cap_to_email_miles">Cap→Email Miles</th>
+              <th class="sortable" data-icol="software_version">Software Version</th>
+            </tr>
+          </thead>
+          <tbody id="int-body"></tbody>
+        </table>
+        <div id="int-nodata" class="no-data">Upload CSV(s) to view interventions</div>
+      </div>
+    </div>
+
+    <!-- Evidence Modal -->
+    <div class="modal-backdrop" id="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal">
+        <div class="modal-header">
+          <div>
+            <div class="modal-title" id="modal-title">Evidence</div>
+            <div class="modal-sub" id="modal-sub"></div>
+          </div>
+          <div class="modal-actions">
+            <button class="modal-btn" id="modal-download">Download CSV</button>
+            <button class="modal-close" id="modal-close">Close</button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <div class="small-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Week</th>
+                  <th>Date</th>
+                  <th>Detection Time</th>
+                  <th>Event ID</th>
+                  <th>Fleet</th>
+                  <th>Vehicle</th>
+                  <th>Classification</th>
+                  <th>Event Type</th>
+                  <th>Confirmation</th>
+                  <th>Lat</th>
+                  <th>Lon</th>
+                  <th>Software</th>
+                </tr>
+              </thead>
+              <tbody id="modal-body-rows"></tbody>
+            </table>
+          </div>
+          <div class="mini" id="modal-foot" style="margin-top:10px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+/* =======================================================================================
+   SECTION: Persistence — separate keys from main dashboard
+======================================================================================= */
+const LS_KEY = 'intDash_UI_v1';
+const IDB_NAME = 'intDashDB_v1';
+const IDB_STORE = 'events';
+
+function idbOpen(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if(!db.objectStoreNames.contains(IDB_STORE)){
+        db.createObjectStore(IDB_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbSet(key, val){
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(val, key);
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
+async function idbGet(key){
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => { db.close(); resolve(req.result); };
+    req.onerror = () => { db.close(); reject(req.error); };
+  });
+}
+async function idbClear(){
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).clear();
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
+
+let persistTimer = null;
+function schedulePersist(){
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => { persistAll().catch(()=>{}); }, 500);
+}
+
+function uiSnapshot(){
+  const collapsibleStates = {};
+  document.querySelectorAll('.controls details').forEach((details) => {
+    const summary = details.querySelector('summary');
+    if(summary) {
+      const key = summary.textContent.trim().substring(0, 30);
+      collapsibleStates[key] = details.open;
+    }
+  });
+
+  return {
+    weeks: Array.from(selectedWeeks),
+    weeksManuallyChanged,
+    emailBuckets: Array.from(selectedEmailBuckets),
+    emailsManuallyChanged,
+    fleet: document.getElementById('fleet').value,
+    vehicle: document.getElementById('vehicle').value,
+    ds: document.getElementById('ds').value,
+    de: document.getElementById('de').value,
+    intCapText: document.getElementById('int-cap-text').value,
+    dfitCapText: document.getElementById('dfit-cap-text').value,
+    dfitWindowText: document.getElementById('dfit-window-text').value,
+    group15min: document.getElementById('group-15min').checked,
+    collapsibleStates,
+    intSort
+  };
+}
+function applyUiSnapshot(s){
+  if(!s) return;
+  if(typeof s.fleet === 'string') document.getElementById('fleet').value = s.fleet;
+  if(typeof s.vehicle === 'string') document.getElementById('vehicle').value = s.vehicle;
+  if(typeof s.ds === 'string') document.getElementById('ds').value = s.ds;
+  if(typeof s.de === 'string') document.getElementById('de').value = s.de;
+  if(typeof s.intCapText === 'string') document.getElementById('int-cap-text').value = s.intCapText;
+  if(typeof s.dfitCapText === 'string') document.getElementById('dfit-cap-text').value = s.dfitCapText;
+  if(typeof s.dfitWindowText === 'string') document.getElementById('dfit-window-text').value = s.dfitWindowText;
+  if(typeof s.group15min === 'boolean') document.getElementById('group-15min').checked = s.group15min;
+  if(Array.isArray(s.weeks)) selectedWeeks = new Set(s.weeks);
+  if(typeof s.weeksManuallyChanged === 'boolean') weeksManuallyChanged = s.weeksManuallyChanged;
+  if(Array.isArray(s.emailBuckets)) selectedEmailBuckets = new Set(s.emailBuckets);
+  if(typeof s.emailsManuallyChanged === 'boolean') emailsManuallyChanged = s.emailsManuallyChanged;
+  if(s.collapsibleStates && typeof s.collapsibleStates === 'object') {
+    document.querySelectorAll('.controls details').forEach((details) => {
+      const summary = details.querySelector('summary');
+      if(summary) {
+        const key = summary.textContent.trim().substring(0, 30);
+        if(key in s.collapsibleStates) details.open = s.collapsibleStates[key];
+      }
+    });
+  }
+  if(s.intSort) intSort = s.intSort;
+}
+async function persistAll(){
+  await idbSet('rawEvents', rawEvents);
+  localStorage.setItem(LS_KEY, JSON.stringify(uiSnapshot()));
+}
+async function restoreAll(){
+  try{
+    const data = await idbGet('rawEvents');
+    if(Array.isArray(data) && data.length) rawEvents = data;
+  }catch(_){}
+  try{
+    const s = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    if(s) applyUiSnapshot(s);
+  }catch(_){}
+}
+
+/* =======================================================================================
+   SECTION: State
+======================================================================================= */
+let rawEvents = [];
+let selectedWeeks = new Set();
+let weeksManuallyChanged = false;
+let selectedEmailBuckets = new Set();
+let emailsManuallyChanged = false;
+let intSort = { col:'verified_total', dir:'desc' };
+let latestVersionStr = null;
+let currentNetworkFilteredEvents = [];
+let intRowByKey = new Map();
+let modalRowsCache = [];
+let modalDownloadName = 'evidence.csv';
+
+/* =======================================================================================
+   SECTION: Helpers
+======================================================================================= */
+function esc(s){
+  return String(s ?? '')
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+function showError(msg){
+  const el = document.getElementById('error');
+  if(!msg){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display='block';
+  el.innerHTML = `CSV load failed: <code>${esc(msg)}</code>`;
+}
+function fmtDateTime(ms){
+  if(!Number.isFinite(ms)) return 'N/A';
+  const d = new Date(ms);
+  const yyyy = d.getFullYear();
+  const MM = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  const ss = String(d.getSeconds()).padStart(2,'0');
+  return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`;
+}
+function shiftLabel(ms){
+  if(!Number.isFinite(ms)) return 'N/A';
+  const d = new Date(ms);
+  const h = d.getHours();
+  const m = d.getMinutes();
+  const isDay = (h > 6 && h < 20) || (h === 6 && m >= 1) || (h === 19 && m <= 59);
+  return isDay ? 'Day' : 'Night';
+}
+function haversineMiles(lat1, lon1, lat2, lon2){
+  if(!Number.isFinite(lat1) || !Number.isFinite(lon1) || !Number.isFinite(lat2) || !Number.isFinite(lon2)) return null;
+  const R = 3958.7613;
+  const toRad = (deg) => deg * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+function parseVersion(v){
+  const s = String(v ?? '').trim();
+  if(!s) return null;
+  const parts = s.split('.').map(x => parseInt(x,10));
+  if(parts.some(n => !Number.isFinite(n))) return null;
+  return parts;
+}
+function cmpVersion(aStr, bStr){
+  const a = parseVersion(aStr);
+  const b = parseVersion(bStr);
+  if(!a && !b) return 0;
+  if(!a) return -1;
+  if(!b) return 1;
+  const n = Math.max(a.length, b.length);
+  for(let i=0;i<n;i++){
+    const av = a[i] ?? 0;
+    const bv = b[i] ?? 0;
+    if(av !== bv) return av - bv;
+  }
+  return 0;
+}
+function versionBadgeHTML(v, isLatest){
+  const s = String(v ?? '').trim();
+  if(!s) return `<span class="badge ver-badge ver-na">N/A</span>`;
+  const cls = isLatest ? 'ver-up' : 'ver-old';
+  return `<span class="badge ver-badge ${cls}">${esc(s)}${isLatest ? ' ✓':''}</span>`;
+}
+function emailBucketFromCount(n){
+  if(n == null || !Number.isFinite(Number(n))) return 'na';
+  const x = Number(n);
+  if(x > 20) return 'red';
+  if(x >= 10) return 'yellow';
+  return 'grey';
+}
+function emailChipHTML(n, isClickable, key){
+  const b = emailBucketFromCount(n);
+  const val = (n == null || !Number.isFinite(Number(n))) ? 'N/A' : Number(n).toLocaleString();
+  const cls =
+    b === 'red' ? 'email-chip email-high' :
+    b === 'yellow' ? 'email-chip email-med' :
+    b === 'grey' ? 'email-chip email-low' : 'email-chip email-na';
+  if(isClickable){
+    return `<span class="${cls} link" data-intdrill="emails" data-key="${esc(key)}" title="Click to view email events">${esc(val)}</span>`;
+  }
+  return `<span class="${cls}">${esc(val)}</span>`;
+}
+function dfitChipHTML(n){
+  const cls = (n > 0) ? 'dfit-chip dfit-hit' : 'dfit-chip dfit-none';
+  return `<span class="${cls}">${n}</span>`;
+}
+function pct(n, d){
+  if(!Number.isFinite(n) || !Number.isFinite(d) || d <= 0) return 0;
+  return Math.round((n/d)*100);
+}
+
+/* =======================================================================================
+   SECTION: CSV parsing
+======================================================================================= */
+function parseCSV(text){
+  text = text.replace(/^\uFEFF/, '');
+  const rows = [];
+  let row = [];
+  let cur = '';
+  let inQ = false;
+  for(let i=0;i<text.length;i++){
+    const ch = text[i];
+    const nx = text[i+1];
+    if(ch === '"' && inQ && nx === '"'){ cur += '"'; i++; continue; }
+    if(ch === '"'){ inQ = !inQ; continue; }
+    if(ch === ',' && !inQ){ row.push(cur); cur=''; continue; }
+    if((ch === '\n' || ch === '\r') && !inQ){
+      if(ch === '\r' && nx === '\n') i++;
+      row.push(cur);
+      if(row.some(c => String(c).trim() !== '')) rows.push(row);
+      row=[]; cur='';
+      continue;
+    }
+    cur += ch;
+  }
+  if(cur.length || row.length){
+    row.push(cur);
+    if(row.some(c => String(c).trim() !== '')) rows.push(row);
+  }
+  return rows;
+}
+function normHeader(h){
+  return String(h ?? '').trim().toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+}
+function parseDetectionTime(dt){
+  const s = String(dt || '').trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if(m){
+    const yyyy = +m[1], MM = +m[2], dd = +m[3];
+    const hh = m[4] ? +m[4] : 0;
+    const mm = m[5] ? +m[5] : 0;
+    const ss = m[6] ? +m[6] : 0;
+    const d = new Date(yyyy, MM-1, dd, hh, mm, ss);
+    const dateISO = `${m[1]}-${m[2]}-${m[3]}`;
+    return { dateISO, ms: d.getTime() };
+  }
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if(m){
+    const MM = +m[1], dd = +m[2], yyyy = +m[3];
+    const hh = m[4] ? +m[4] : 0;
+    const mm = m[5] ? +m[5] : 0;
+    const ss = m[6] ? +m[6] : 0;
+    const d = new Date(yyyy, MM-1, dd, hh, mm, ss);
+    const dateISO = `${String(yyyy).padStart(4,'0')}-${String(MM).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+    return { dateISO, ms: d.getTime() };
+  }
+  return null;
+}
+function fileNameToWeekKey(fileName){
+  const n = String(fileName || '').toLowerCase();
+  const m = n.match(/(20\d{2})\s*week\s*(\d{1,2})/i) || n.match(/(20\d{2})week\s*(\d{1,2})/i);
+  if(!m) return null;
+  const year = m[1];
+  const wk = String(parseInt(m[2],10)).padStart(2,'0');
+  return `${year}-W${wk}`;
+}
+function loadEventsFromCSV(csvText, fileWeekKey){
+  const grid = parseCSV(csvText);
+  if(grid.length < 2) throw new Error("CSV has no data rows.");
+
+  const headersRaw = grid[0].map(h => String(h ?? '').trim());
+  const headers = headersRaw.map(normHeader);
+  const idx = (name) => headers.indexOf(normHeader(name));
+
+  const iEvent = idx('event_id');
+  const iVehId = idx('vehicle_id');
+  const iVeh = idx('vehicle');
+  const iFleet = idx('fleet');
+  const iDT = idx('detection_time');
+  const iClass = idx('classification');
+  const iType = idx('event_type');
+  const iConf = idx('confirmation');
+  const iLat = idx('latitude');
+  const iLon = idx('longitude');
+  const iSoft = idx('software_version');
+
+  const missing = [];
+  if(iEvent === -1) missing.push('event_id');
+  if(iVeh === -1) missing.push('vehicle');
+  if(iFleet === -1) missing.push('fleet');
+  if(iDT === -1) missing.push('detection_time');
+  if(iClass === -1) missing.push('classification');
+  if(iType === -1) missing.push('event_type');
+  if(iConf === -1) missing.push('confirmation');
+  if(missing.length){
+    throw new Error(`Missing required columns: ${missing.join(', ')}. Found: ${headersRaw.join(', ')}`);
+  }
+
+  const out = [];
+  for(let r=1;r<grid.length;r++){
+    const row = grid[r];
+    const get = (i) => (i >= 0 && i < row.length) ? row[i] : '';
+
+    const event_id = String(get(iEvent)).trim();
+    const vehicle_id = (iVehId >= 0) ? String(get(iVehId)).trim() : '';
+    const vehicle = String(get(iVeh)).trim();
+    const fleet = String(get(iFleet)).trim();
+    const dt_raw = String(get(iDT)).trim();
+    const classification = String(get(iClass)).trim();
+    const event_type = String(get(iType)).trim();
+    const confirmation = String(get(iConf)).trim();
+    const latitude = (iLat >= 0) ? Number(String(get(iLat)).trim()) : NaN;
+    const longitude = (iLon >= 0) ? Number(String(get(iLon)).trim()) : NaN;
+    const software_version = (iSoft >= 0) ? String(get(iSoft)).trim() : '';
+
+    if(!event_id || !vehicle || !fleet || !dt_raw) continue;
+    const parsed = parseDetectionTime(dt_raw);
+    if(!parsed) continue;
+
+    out.push({
+      event_id, vehicle_id, vehicle, fleet,
+      dateISO: parsed.dateISO, dt_raw, dt_ms: parsed.ms,
+      classification, event_type, confirmation,
+      latitude: Number.isFinite(latitude) ? latitude : null,
+      longitude: Number.isFinite(longitude) ? longitude : null,
+      software_version,
+      fileWeek: fileWeekKey || 'Unknown'
+    });
+  }
+
+  if(!out.length){
+    const sample = (grid[1] ? grid[1].join(',').slice(0,200) : '');
+    throw new Error(`Parsed CSV but got 0 usable rows (check detection_time formatting). Sample: ${sample}`);
+  }
+  return out;
+}
+function dedupeAll(events){
+  const byId = new Map();
+  for(const e of events){
+    const id = String(e.event_id || '').trim();
+    if(!id) continue;
+    if(!byId.has(id)){
+      byId.set(id, e);
+      continue;
+    }
+    const cur = byId.get(id);
+    const curMs = Number.isFinite(cur?.dt_ms) ? cur.dt_ms : -Infinity;
+    const newMs = Number.isFinite(e?.dt_ms) ? e.dt_ms : -Infinity;
+    if(newMs > curMs) byId.set(id, e);
+  }
+  return Array.from(byId.values());
+}
+
+/* =======================================================================================
+   SECTION: Event logic
+======================================================================================= */
+function isVerifiedFatigue(e){
+  const c = (e.classification || '').toLowerCase().trim();
+  const conf = (e.confirmation || '').toLowerCase().trim();
+  return (conf === 'verified') && (c === 'fatigue - microsleep' || c === 'fatigue - drowsiness');
+}
+function computeLatestVersion(events){
+  const versions = new Set();
+  for(const e of events){
+    const s = String(e.software_version ?? '').trim();
+    if(s) versions.add(s);
+  }
+  const arr = Array.from(versions);
+  if(!arr.length) return null;
+  arr.sort((a,b) => cmpVersion(a,b));
+  return arr[arr.length - 1];
+}
+function vehicleVersionFromEvents(events){
+  const freq = new Map();
+  let lastNonEmpty = null;
+  for(const e of events){
+    const s = String(e.software_version ?? '').trim();
+    if(!s) continue;
+    lastNonEmpty = s;
+    freq.set(s, (freq.get(s) || 0) + 1);
+  }
+  if(freq.size === 0) return '';
+  let best = lastNonEmpty;
+  let bestN = -1;
+  for(const [k,v] of freq.entries()){
+    if(v > bestN){ bestN = v; best = k; }
+  }
+  return best;
+}
+
+/* =======================================================================================
+   SECTION: Weeks panel
+======================================================================================= */
+function refreshWeeksPanel(){
+  const panel = document.getElementById('week-panel');
+  if(!rawEvents.length){
+    panel.innerHTML = `<div style="color:#7f8c8d;font-size:12px;">No weeks loaded yet</div>`;
+    selectedWeeks = new Set();
+    weeksManuallyChanged = false;
+    return;
+  }
+  const counts = new Map();
+  for(const e of rawEvents){
+    counts.set(e.fileWeek, (counts.get(e.fileWeek) || 0) + 1);
+  }
+  const weeks = Array.from(counts.keys()).sort();
+
+  if(selectedWeeks.size === 0 && !weeksManuallyChanged){
+    selectedWeeks = new Set(weeks);
+  } else {
+    selectedWeeks = new Set(Array.from(selectedWeeks).filter(w => counts.has(w)));
+  }
+
+  panel.innerHTML = weeks.map(w => {
+    const checked = selectedWeeks.has(w) ? 'checked' : '';
+    const count = counts.get(w);
+    return `
+      <div class="item">
+        <div class="left">
+          <input type="checkbox" class="wk" data-week="${esc(w)}" ${checked}/>
+          <div><strong>${esc(w)}</strong></div>
+        </div>
+        <div class="count">${count.toLocaleString()} events</div>
+      </div>
+    `;
+  }).join('');
+
+  panel.querySelectorAll('.wk').forEach(cb => {
+    cb.addEventListener('change', () => {
+      weeksManuallyChanged = true;
+      const wk = cb.getAttribute('data-week');
+      if(cb.checked) selectedWeeks.add(wk);
+      else selectedWeeks.delete(wk);
+      applyAutoDateRange();
+      renderAll();
+      schedulePersist();
+    });
+  });
+}
+
+function getAllEmailBuckets(){ return ['red','yellow','grey','na']; }
+function bucketLabel(b){
+  if(b === 'red') return 'Red (> 20)';
+  if(b === 'yellow') return 'Yellow (10–20)';
+  if(b === 'grey') return 'Grey (< 10)';
+  return 'N/A';
+}
+function refreshEmailsPanel(){
+  const panel = document.getElementById('emails-panel');
+  if(!rawEvents.length){
+    panel.innerHTML = `<div style="color:#7f8c8d;font-size:12px;">Upload CSV(s) to enable email filtering</div>`;
+    selectedEmailBuckets = new Set();
+    emailsManuallyChanged = false;
+    return;
+  }
+
+  const buckets = getAllEmailBuckets();
+  if(selectedEmailBuckets.size === 0 && !emailsManuallyChanged){
+    selectedEmailBuckets = new Set(buckets);
+  } else {
+    selectedEmailBuckets = new Set(Array.from(selectedEmailBuckets).filter(b => buckets.includes(b)));
+  }
+
+  panel.innerHTML = buckets.map(b => {
+    const checked = selectedEmailBuckets.has(b) ? 'checked' : '';
+    const chip =
+      b === 'red' ? `<span class="email-chip email-high">${esc(bucketLabel(b))}</span>` :
+      b === 'yellow' ? `<span class="email-chip email-med">${esc(bucketLabel(b))}</span>` :
+      b === 'grey' ? `<span class="email-chip email-low">${esc(bucketLabel(b))}</span>` :
+      `<span class="email-chip email-na">${esc(bucketLabel(b))}</span>`;
+    return `
+      <div class="item">
+        <div class="left">
+          <input type="checkbox" class="eb" data-eb="${esc(b)}" ${checked}/>
+          <div>${chip}</div>
+        </div>
+        <div class="count">&nbsp;</div>
+      </div>
+    `;
+  }).join('');
+
+  panel.querySelectorAll('.eb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      emailsManuallyChanged = true;
+      const b = cb.getAttribute('data-eb');
+      if(cb.checked) selectedEmailBuckets.add(b);
+      else selectedEmailBuckets.delete(b);
+      renderAll();
+      schedulePersist();
+    });
+  });
+}
+
+/* =======================================================================================
+   SECTION: Date display + Auto range
+======================================================================================= */
+function updateDateDisplay(){
+  const ds = document.getElementById('ds').value;
+  const de = document.getElementById('de').value;
+  const el = document.getElementById('date-display');
+  if(ds && de){
+    const a = new Date(ds + "T00:00:00");
+    const b = new Date(de + "T00:00:00");
+    const opt = { year:'numeric', month:'short', day:'numeric' };
+    el.textContent = (ds === de) ? a.toLocaleDateString('en-US', opt) : `${a.toLocaleDateString('en-US', opt)} - ${b.toLocaleDateString('en-US', opt)}`;
+  } else {
+    el.textContent = rawEvents.length ? 'Select weeks' : 'Upload CSV(s)';
+  }
+}
+function applyAutoDateRange(){
+  if(!rawEvents.length) return;
+  if(selectedWeeks.size === 0) return;
+  const inWeeks = rawEvents.filter(e => selectedWeeks.has(e.fileWeek));
+  if(!inWeeks.length) return;
+  const dates = inWeeks.map(e => e.dateISO).filter(Boolean).sort();
+  if(!dates.length) return;
+  document.getElementById('ds').value = dates[0];
+  document.getElementById('de').value = dates[dates.length - 1];
+  updateDateDisplay();
+}
+
+/* =======================================================================================
+   SECTION: Network filters
+======================================================================================= */
+function refreshFleetDropdown(){
+  const input = document.getElementById('fleet');
+  const datalist = document.getElementById('fleet-list');
+  const fleets = Array.from(new Set(rawEvents.map(e => e.fleet))).filter(Boolean).sort();
+  datalist.innerHTML = '<option value="">(all)</option>';
+  fleets.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f;
+    datalist.appendChild(opt);
+  });
+}
+function normalizeFleetInput(val){ return String(val||'').trim(); }
+function refreshVehicleDropdown(){
+  const sel = document.getElementById('vehicle');
+  let events = rawEvents;
+  if(selectedWeeks.size > 0) events = events.filter(e => selectedWeeks.has(e.fileWeek));
+  const selectedFleet = normalizeFleetInput(document.getElementById('fleet').value);
+  if(selectedFleet && selectedFleet !== '(all)') events = events.filter(e => e.fleet === selectedFleet);
+  const vehicles = Array.from(new Set(events.map(e => e.vehicle))).filter(Boolean).sort();
+  sel.innerHTML = '<option value="">(all)</option>';
+  vehicles.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    sel.appendChild(opt);
+  });
+}
+function filterEventsNetworkOnly(){
+  let data = rawEvents;
+  if(rawEvents.length){
+    if(selectedWeeks.size === 0) return [];
+    data = data.filter(e => selectedWeeks.has(e.fileWeek));
+  }
+  const ds = document.getElementById('ds').value;
+  const de = document.getElementById('de').value;
+  if(ds && de) data = data.filter(e => e.dateISO >= ds && e.dateISO <= de);
+  const selectedFleet = normalizeFleetInput(document.getElementById('fleet').value);
+  if(selectedFleet && selectedFleet !== '(all)') data = data.filter(e => e.fleet === selectedFleet);
+  const vehicle = document.getElementById('vehicle').value;
+  if(vehicle) data = data.filter(e => e.vehicle === vehicle);
+  return data;
+}
+
+/* =======================================================================================
+   SECTION: Interventions controls
+======================================================================================= */
+function getInterventionCap(){
+  const raw = (document.getElementById('int-cap-text')?.value || '').trim();
+  const n = parseInt(raw, 10);
+  if(!Number.isFinite(n) || n <= 0) return 10;
+  return Math.min(99, n);
+}
+function getDfitCap(){
+  const raw = (document.getElementById('dfit-cap-text')?.value || '').trim();
+  const n = parseInt(raw, 10);
+  if(!Number.isFinite(n) || n <= 0) return 3;
+  return Math.min(99, n);
+}
+function getDfitWindowMs(){
+  const raw = (document.getElementById('dfit-window-text')?.value || '').trim();
+  const n = parseInt(raw, 10);
+  if(!Number.isFinite(n) || n <= 0) return 60 * 60 * 1000;
+  return Math.min(1440, n) * 60 * 1000;
+}
+function get15MinToggle(){
+  return !!document.getElementById('group-15min')?.checked;
+}
+
+/* =======================================================================================
+   SECTION: New feature logic
+======================================================================================= */
+
+/**
+ * Compute 15-minute event groups from sorted verified fatigue events.
+ * Returns count of distinct groups.
+ */
+function computeEventGroups(vfArr){
+  if(!vfArr.length) return 0;
+  let groups = 1;
+  for(let i=1; i<vfArr.length; i++){
+    const gap = vfArr[i].dt_ms - vfArr[i-1].dt_ms;
+    if(gap > 900000) groups++; // > 15 minutes
+  }
+  return groups;
+}
+
+/**
+ * Compute DFIT call count using a sliding window.
+ * Each time dfitCap events are found within dfitWindowMs, count +1 and
+ * advance the window start past the oldest event in that group.
+ */
+function computeDfitCalls(vfArr, dfitCap, dfitWindowMs){
+  if(!vfArr.length || dfitCap <= 0) return 0;
+  let dfitCalls = 0;
+  let start = 0;
+  const n = vfArr.length;
+  while(start <= n - dfitCap){
+    const windowStart = vfArr[start].dt_ms;
+    // Find how many events fit within the window starting at vfArr[start]
+    let end = start;
+    while(end < n && vfArr[end].dt_ms - windowStart < dfitWindowMs){
+      end++;
+    }
+    const countInWindow = end - start;
+    if(countInWindow >= dfitCap){
+      dfitCalls++;
+      // Advance window past the oldest event (start)
+      start++;
+    } else {
+      // Not enough events in window — advance start
+      start++;
+    }
+  }
+  return dfitCalls;
+}
+
+/* =======================================================================================
+   SECTION: Build Interventions Rows
+======================================================================================= */
+function shiftKeyForEvent(e){
+  const shift = shiftLabel(e.dt_ms);
+  return { dateISO: e.dateISO, shift };
+}
+
+function buildInterventionsRows(eventsGlobal){
+  const cap = getInterventionCap();
+  const dfitCap = getDfitCap();
+  const dfitWindowMs = getDfitWindowMs();
+  const use15min = get15MinToggle();
+
+  const grpAll = new Map();
+  for(const e of eventsGlobal){
+    if(!Number.isFinite(e.dt_ms)) continue;
+    const s = shiftKeyForEvent(e);
+    const key = `${s.dateISO}|${s.shift}|${e.fleet}|${e.vehicle}`;
+    if(!grpAll.has(key)) grpAll.set(key, []);
+    grpAll.get(key).push(e);
+  }
+
+  const grpVF = new Map();
+  for(const e of eventsGlobal){
+    if(!Number.isFinite(e.dt_ms)) continue;
+    if(!isVerifiedFatigue(e)) continue;
+    const s = shiftKeyForEvent(e);
+    const key = `${s.dateISO}|${s.shift}|${e.fleet}|${e.vehicle}`;
+    if(!grpVF.has(key)) grpVF.set(key, []);
+    grpVF.get(key).push(e);
+  }
+
+  const rows = [];
+  for(const [key, allArr] of grpAll.entries()){
+    const [dateISO, shift, fleet, vehicle] = key.split('|');
+    const vfArr = (grpVF.get(key) || []).slice().sort((a,b)=>a.dt_ms - b.dt_ms);
+
+    const verified_total = vfArr.length;
+    if(verified_total <= 0) continue;
+
+    const calls = Math.min(cap, verified_total);
+    const emails = Math.max(0, verified_total - cap);
+
+    const capEvent = (verified_total >= cap) ? vfArr[cap-1] : null;
+    const lastEmail = (emails > 0) ? vfArr[vfArr.length - 1] : null;
+
+    const capLat = capEvent?.latitude ?? null;
+    const capLon = capEvent?.longitude ?? null;
+    const emailLat = lastEmail?.latitude ?? null;
+    const emailLon = lastEmail?.longitude ?? null;
+    const miles = (emails > 0) ? haversineMiles(capLat, capLon, emailLat, emailLon) : null;
+
+    const sv = vehicleVersionFromEvents(allArr.slice().sort((a,b)=>a.dt_ms - b.dt_ms));
+
+    // Event Groups (15-min clustering)
+    const event_groups = use15min ? computeEventGroups(vfArr) : null;
+
+    // DFIT Calls
+    const dfit_calls = computeDfitCalls(vfArr, dfitCap, dfitWindowMs);
+
+    rows.push({
+      key,
+      dateISO, shift, fleet, vehicle,
+      total_events: allArr.length,
+      verified_total,
+      event_groups,
+      calls,
+      dfit_calls,
+      emails,
+      cap_time_ms: capEvent ? capEvent.dt_ms : null,
+      cap_time: capEvent ? fmtDateTime(capEvent.dt_ms) : 'N/A',
+      last_email_time_ms: lastEmail ? lastEmail.dt_ms : null,
+      last_email_time: lastEmail ? fmtDateTime(lastEmail.dt_ms) : 'N/A',
+      cap_lat: Number.isFinite(capLat) ? capLat : null,
+      cap_lon: Number.isFinite(capLon) ? capLon : null,
+      email_lat: Number.isFinite(emailLat) ? emailLat : null,
+      email_lon: Number.isFinite(emailLon) ? emailLon : null,
+      cap_to_email_miles: Number.isFinite(miles) ? miles : null,
+      software_version: sv || '',
+      emailEvents: (emails > 0) ? vfArr.slice(cap) : []
+    });
+  }
+  return rows;
+}
+
+function applyEmailBucketFilter(rows){
+  if(selectedEmailBuckets.size === 0) return [];
+  return rows.filter(r => selectedEmailBuckets.has(emailBucketFromCount(r.emails)));
+}
+
+/* =======================================================================================
+   SECTION: Sort
+======================================================================================= */
+function sortInterventionsRows(rows){
+  const col = intSort.col;
+  const dir = intSort.dir;
+  const mul = (dir === 'asc') ? 1 : -1;
+  const str = (x) => String(x ?? '').toLowerCase();
+  const out = [...rows];
+
+  out.sort((a,b) => {
+    if(col === 'dateISO' || col === 'shift' || col === 'fleet' || col === 'vehicle' || col === 'software_version'){
+      const av = str(a[col]);
+      const bv = str(b[col]);
+      if(av === bv) return str(a.vehicle).localeCompare(str(b.vehicle)) * mul;
+      return av.localeCompare(bv) * mul;
+    }
+    if(col === 'cap_time' || col === 'last_email_time'){
+      const av = Number.isFinite(a[col + '_ms']) ? a[col + '_ms'] : -Infinity;
+      const bv = Number.isFinite(b[col + '_ms']) ? b[col + '_ms'] : -Infinity;
+      if(av === bv) return str(a.vehicle).localeCompare(str(b.vehicle)) * mul;
+      return (av - bv) * mul;
+    }
+    const av = Number(a[col] ?? -Infinity);
+    const bv = Number(b[col] ?? -Infinity);
+    if(av === bv) return str(a.vehicle).localeCompare(str(b.vehicle)) * mul;
+    return (av - bv) * mul;
+  });
+
+  return out;
+}
+
+function clearSortClasses(selector){
+  document.querySelectorAll(selector).forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    th.classList.add('sortable');
+  });
+}
+function setSortClass(th, dir){
+  th.classList.remove('sort-asc','sort-desc');
+  th.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
+}
+
+document.querySelector('#int-body').closest('table').querySelector('thead').addEventListener('click', (e) => {
+  const th = e.target.closest('th[data-icol]');
+  if(!th) return;
+  const col = th.getAttribute('data-icol');
+  if(!col) return;
+
+  if(intSort.col === col){
+    intSort.dir = (intSort.dir === 'asc') ? 'desc' : 'asc';
+  } else {
+    intSort.col = col;
+    intSort.dir = 'desc';
+    if(['dateISO','shift','fleet','vehicle','software_version','cap_time','last_email_time'].includes(col)) intSort.dir = 'asc';
+  }
+
+  clearSortClasses('thead th[data-icol]');
+  setSortClass(th, intSort.dir);
+
+  renderAll();
+  schedulePersist();
+});
+
+/* =======================================================================================
+   SECTION: Render
+======================================================================================= */
+function renderInterventionsTab(eventsGlobal){
+  const tbody = document.getElementById('int-body');
+  const nodata = document.getElementById('int-nodata');
+  const kpis = document.getElementById('int-kpis');
+
+  tbody.innerHTML = '';
+  kpis.innerHTML = '';
+
+  if(!rawEvents.length){
+    nodata.style.display = 'block';
+    nodata.textContent = 'Upload CSV(s) to view interventions';
+    return;
+  }
+
+  const cap = getInterventionCap();
+  const dfitCap = getDfitCap();
+  const use15min = get15MinToggle();
+  const allRowsRaw = buildInterventionsRows(eventsGlobal);
+
+  // Update Event Groups column header
+  const thGroups = document.getElementById('th-event-groups');
+  if(thGroups) thGroups.style.opacity = use15min ? '1' : '0.5';
+
+  const allRows = applyEmailBucketFilter(allRowsRaw);
+
+  if(!allRows.length){
+    nodata.style.display = 'block';
+    nodata.textContent = 'No interventions rows match your current filters (including Email filter)';
+    return;
+  }
+  nodata.style.display = 'none';
+
+  const totalVerified = allRows.reduce((s,r)=> s + (r.verified_total||0), 0);
+  const dayVerified = allRows.filter(r => r.shift === 'Day').reduce((s,r)=> s + (r.verified_total||0), 0);
+  const nightVerified = allRows.filter(r => r.shift === 'Night').reduce((s,r)=> s + (r.verified_total||0), 0);
+  const capShifts = allRows.filter(r => r.verified_total >= cap).length;
+  const totalShifts = allRows.length;
+  const totalDfitCalls = allRows.reduce((s,r)=> s + (r.dfit_calls||0), 0);
+  const dfitShifts = allRows.filter(r => (r.dfit_calls||0) > 0).length;
+
+  kpis.innerHTML = [
+    {k:`Total Verified Valid Fatigue`, v: `${totalVerified.toLocaleString()} (100%)`},
+    {k:`Day Verified`, v: `${dayVerified.toLocaleString()} (${pct(dayVerified,totalVerified)}%)`},
+    {k:`Night Verified`, v: `${nightVerified.toLocaleString()} (${pct(nightVerified,totalVerified)}%)`},
+    {k:`Vehicle-shifts ≥ CAP (${cap})`, v: `${capShifts.toLocaleString()} (${pct(capShifts,totalShifts)}% of shifts)`},
+    {k:`Total DFIT Calls`, v: `${totalDfitCalls.toLocaleString()} (${pct(dfitShifts,totalShifts)}% of shifts triggered)`}
+  ].map(x => `<div class="kpi"><div class="k">${esc(x.k)}</div><div class="v">${esc(x.v)}</div></div>`).join('');
+
+  const rows = sortInterventionsRows(allRows);
+  intRowByKey = new Map(rows.map(r => [r.key, r]));
+
+  const fmtNum = (x, d=5) => Number.isFinite(x) ? Number(x).toFixed(d) : '';
+  const fmtMiles = (x) => Number.isFinite(x) ? Number(x).toFixed(2) : '';
+
+  tbody.innerHTML = rows.map(r => {
+    const isLatest = latestVersionStr && r.software_version && (cmpVersion(r.software_version, latestVersionStr) === 0);
+    const emailsClickable = (r.emails||0) > 0;
+    const emailsCell = emailChipHTML(
+      (r.emails == null ? null : r.emails),
+      emailsClickable,
+      r.key
+    );
+    const groupsCell = use15min
+      ? (r.event_groups != null ? r.event_groups.toLocaleString() : '—')
+      : '—';
+
+    return `
+      <tr>
+        <td>${esc(r.dateISO)}</td>
+        <td>${esc(r.shift)}</td>
+        <td>${esc(r.fleet)}</td>
+        <td>${esc(r.vehicle)}</td>
+        <td class="num">${(r.total_events||0).toLocaleString()}</td>
+        <td class="num">${(r.verified_total||0).toLocaleString()}</td>
+        <td class="num">${esc(groupsCell)}</td>
+        <td class="num">${(r.calls||0).toLocaleString()}</td>
+        <td class="num">${dfitChipHTML(r.dfit_calls||0)}</td>
+        <td class="num">${emailsCell}</td>
+        <td>${esc(r.cap_time)}</td>
+        <td>${esc(r.last_email_time)}</td>
+        <td class="num">${fmtNum(r.cap_lat)}</td>
+        <td class="num">${fmtNum(r.cap_lon)}</td>
+        <td class="num">${fmtNum(r.email_lat)}</td>
+        <td class="num">${fmtNum(r.email_lon)}</td>
+        <td class="num">${fmtMiles(r.cap_to_email_miles)}</td>
+        <td>${versionBadgeHTML(r.software_version, isLatest)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderAll(){
+  updateDateDisplay();
+  currentNetworkFilteredEvents = filterEventsNetworkOnly();
+  latestVersionStr = computeLatestVersion(currentNetworkFilteredEvents);
+  renderInterventionsTab(currentNetworkFilteredEvents);
+  if(intSort.col){
+    const th = document.querySelector(`thead th[data-icol="${intSort.col}"]`);
+    if(th){
+      clearSortClasses('thead th[data-icol]');
+      setSortClass(th, intSort.dir);
+    }
+  }
+}
+
+/* =======================================================================================
+   SECTION: Evidence modal
+======================================================================================= */
+function openEvidenceModal(title, subtitle, rows, downloadName){
+  modalRowsCache = rows || [];
+  modalDownloadName = downloadName || 'evidence.csv';
+
+  document.getElementById('modal-title').textContent = title || 'Evidence';
+  document.getElementById('modal-sub').textContent = subtitle || '';
+
+  const tbody = document.getElementById('modal-body-rows');
+
+  if(!modalRowsCache.length){
+    tbody.innerHTML = `<tr><td colspan="12" style="padding:16px; color:#7f8c8d;">No matching events found.</td></tr>`;
+    document.getElementById('modal-foot').textContent = '';
+  } else {
+    const sorted = [...modalRowsCache].sort((a,b)=> (b.dt_ms||0) - (a.dt_ms||0));
+    tbody.innerHTML = sorted.map(e => `
+      <tr>
+        <td>${esc(e.fileWeek||'')}</td>
+        <td>${esc(e.dateISO||'')}</td>
+        <td>${esc(e.dt_raw||fmtDateTime(e.dt_ms))}</td>
+        <td>${esc(e.event_id||'')}</td>
+        <td>${esc(e.fleet||'')}</td>
+        <td>${esc(e.vehicle||'')}</td>
+        <td>${esc(e.classification||'')}</td>
+        <td>${esc(e.event_type||'')}</td>
+        <td>${esc(e.confirmation||'')}</td>
+        <td>${(e.latitude==null?'':esc(e.latitude))}</td>
+        <td>${(e.longitude==null?'':esc(e.longitude))}</td>
+        <td>${esc(e.software_version||'')}</td>
+      </tr>
+    `).join('');
+    document.getElementById('modal-foot').textContent = `Rows: ${sorted.length.toLocaleString()} (sorted newest → oldest).`;
+  }
+
+  document.getElementById('modal-backdrop').style.display = 'flex';
+}
+function closeEvidenceModal(){ document.getElementById('modal-backdrop').style.display = 'none'; }
+
+document.getElementById('modal-close').addEventListener('click', closeEvidenceModal);
+document.getElementById('modal-backdrop').addEventListener('click', (e) => { if(e.target.id === 'modal-backdrop') closeEvidenceModal(); });
+document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeEvidenceModal(); });
+
+document.getElementById('modal-download').addEventListener('click', () => {
+  const rows = modalRowsCache || [];
+  const headers = ['week','date','detection_time','event_id','fleet','vehicle','classification','event_type','confirmation','latitude','longitude','software_version'];
+  const lines = [headers.join(',')];
+
+  for(const e of rows){
+    const vals = [
+      e.fileWeek||'',
+      e.dateISO||'',
+      e.dt_raw||fmtDateTime(e.dt_ms)||'',
+      e.event_id||'',
+      e.fleet||'',
+      e.vehicle||'',
+      e.classification||'',
+      e.event_type||'',
+      e.confirmation||'',
+      (e.latitude==null?'':String(e.latitude)),
+      (e.longitude==null?'':String(e.longitude)),
+      e.software_version||''
+    ].map(v => `"${String(v).replace(/"/g,'""')}"`);
+    lines.push(vals.join(','));
+  }
+
+  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = modalDownloadName || 'evidence.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1500);
+});
+
+/* Emails drilldown */
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-intdrill="emails"]');
+  if(!el) return;
+  const key = el.getAttribute('data-key');
+  if(!key) return;
+
+  const row = intRowByKey.get(key);
+  if(!row) return;
+
+  const cap = getInterventionCap();
+  const rowsToShow = row.emailEvents || [];
+
+  const title = `Interventions Evidence — Emails (post-cap verified fatigue) — ${row.fleet} / ${row.vehicle} — ${row.dateISO} (${row.shift})`;
+  const sub = `Emails are verified fatigue events beyond the first ${cap} for this vehicle-shift. Network filters applied (weeks/date/fleet/vehicle).`;
+  const dl = `${row.fleet}_${row.vehicle}_${row.dateISO}_${row.shift}_emails_postcap.csv`.replace(/\s+/g,'_');
+
+  openEvidenceModal(title, sub, rowsToShow, dl);
+});
+
+/* =======================================================================================
+   SECTION: Wire up controls
+======================================================================================= */
+function debounce(fn, ms=180){
+  let t=null;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(()=>fn(...args), ms);
+  };
+}
+const rerenderDebounced = debounce(() => { renderAll(); schedulePersist(); }, 120);
+
+['vehicle','ds','de','int-cap-text','dfit-cap-text','dfit-window-text'].forEach(id => {
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('input', () => {
+    if(id === 'ds' || id === 'de') updateDateDisplay();
+    rerenderDebounced();
+  });
+  el.addEventListener('change', () => {
+    if(id === 'ds' || id === 'de') { updateDateDisplay(); refreshVehicleDropdown(); }
+    rerenderDebounced();
+  });
+});
+
+document.getElementById('fleet').addEventListener('change', () => {
+  refreshVehicleDropdown();
+  rerenderDebounced();
+});
+
+document.getElementById('group-15min').addEventListener('change', () => {
+  renderAll();
+  schedulePersist();
+});
+
+document.getElementById('emails-all').addEventListener('click', () => {
+  emailsManuallyChanged = true;
+  selectedEmailBuckets = new Set(getAllEmailBuckets());
+  refreshEmailsPanel();
+  renderAll();
+  schedulePersist();
+});
+document.getElementById('emails-none').addEventListener('click', () => {
+  emailsManuallyChanged = true;
+  selectedEmailBuckets = new Set();
+  refreshEmailsPanel();
+  renderAll();
+  schedulePersist();
+});
+
+document.getElementById('reset-filters').addEventListener('click', () => {
+  document.getElementById('fleet').value = '';
+  document.getElementById('vehicle').value = '';
+  document.getElementById('ds').value = '';
+  document.getElementById('de').value = '';
+  document.getElementById('int-cap-text').value = '10';
+  document.getElementById('dfit-cap-text').value = '3';
+  document.getElementById('dfit-window-text').value = '60';
+  document.getElementById('group-15min').checked = true;
+
+  weeksManuallyChanged = false;
+  selectedWeeks = new Set();
+  emailsManuallyChanged = false;
+  selectedEmailBuckets = new Set();
+  intSort = { col:'verified_total', dir:'desc' };
+
+  refreshVehicleDropdown();
+  refreshWeeksPanel();
+  refreshEmailsPanel();
+  applyAutoDateRange();
+  renderAll();
+  schedulePersist();
+});
+
+document.getElementById('clear-data').addEventListener('click', async () => {
+  rawEvents = [];
+  selectedWeeks = new Set();
+  weeksManuallyChanged = false;
+  selectedEmailBuckets = new Set();
+  emailsManuallyChanged = false;
+
+  try { await idbClear(); } catch(_){}
+  try { localStorage.removeItem(LS_KEY); } catch(_){}
+
+  document.getElementById('csv-upload').value = '';
+  document.getElementById('ds').value = '';
+  document.getElementById('de').value = '';
+  updateDateDisplay();
+
+  refreshFleetDropdown();
+  refreshVehicleDropdown();
+  refreshWeeksPanel();
+  refreshEmailsPanel();
+  renderAll();
+});
+
+document.getElementById('csv-upload').addEventListener('change', async (e) => {
+  showError(null);
+
+  const files = Array.from(e.target.files || []);
+  if(!files.length) return;
+
+  try{
+    const loaded = [];
+    for(const f of files){
+      const wk = fileNameToWeekKey(f.name) || 'Unknown';
+      const text = await f.text();
+      const evs = loadEventsFromCSV(text, wk);
+      loaded.push(...evs);
+    }
+
+    rawEvents = dedupeAll([...(rawEvents||[]), ...loaded]);
+
+    refreshFleetDropdown();
+    refreshVehicleDropdown();
+    refreshWeeksPanel();
+    refreshEmailsPanel();
+    applyAutoDateRange();
+
+    renderAll();
+    await persistAll();
+  }catch(err){
+    showError(err?.message || String(err));
+  }
+});
+
+/* =======================================================================================
+   SECTION: Init
+======================================================================================= */
+(async function init(){
+  await restoreAll();
+  refreshFleetDropdown();
+  refreshWeeksPanel();
+  refreshEmailsPanel();
+  if(rawEvents.length){
+    if(!document.getElementById('ds').value || !document.getElementById('de').value){
+      applyAutoDateRange();
+    }
+  }
+  renderAll();
+  document.querySelectorAll('.controls details').forEach(details => {
+    details.addEventListener('toggle', () => { schedulePersist(); });
+  });
+})();
+    </script>
+  </div>
+</body>
+</html>
